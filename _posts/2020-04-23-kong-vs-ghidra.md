@@ -16,7 +16,7 @@ This month Godzilla Vs. Kong is being released. As a long-time Toho/kaiju fan, I
 
 To start, we're going to be reverse-engineering the Game Boy Advance (GBA) game Kong: King of Atlantis. This game utilizes a password system to get access to the various levels. We will be reverse engineering that functionality and hopefully putting together some scripts to aid in our analysis! Can King Kong hold his own against Ghidra's monstrous API? Let's find out.
 
-![Kong Vs Ghidora](http://3.bp.blogspot.com/--qb48O-Mpic/Uxnun8vRn6I/AAAAAAAAFo4/l4A6Sx67S2c/s1600/Kong+vs+Ghidorah+(front).jpg)
+![Password Screen](https://wrongbaud.github.io/assets/img/kong/kvg.jpg)
 
 ### Reccomended Reading
 * If you're not familiar with ARM/Thumb operating modes, I would highly recommend that you review [this post](https://www.embedded.com/introduction-to-arm-thumb/). 
@@ -46,7 +46,6 @@ First, we will load the Kong: King of Atlantis ROM and select the GBA loader. Af
 
 If we take a cursory look through all of these functions, we can see that most of them have a similar function prologue:
 
-![Function Prologue One](https://wrongbaud.github.io/assets/img/kong/func_pro_1.png)
 ![Function Prologue Two](https://wrongbaud.github.io/assets/img/kong/func_pro_2.png)
 
 From this, we can infer a couple of things about this codebase:
@@ -58,7 +57,7 @@ While Ghidra did an excellent job at identifying many functions, we can still se
 
 ![Undefined Function](https://wrongbaud.github.io/assets/img/kong/example_undefined_function.png)
 
-If we attempt to disassembly this data as THUMB code, we see the following appear:
+If we attempt to disassemble this data as THUMB code, we see the following appear:
 
 ![Proper Disassembly](https://wrongbaud.github.io/assets/img/kong/proper_disassembly.png)
 
@@ -110,11 +109,11 @@ MakeFunctionsScript.java> Made function at address: 082c6138
 
 Excellent! Just by searching the script repository, we were able to find another way to streamline our analysis. Let's take a look at some of the newly defined functions and see what they look like:
 
-![Bad Function 1](https://wrongbaud.github.io/assets/img/kong/bad_function_data_section.jpg)
+![Bad Function 1](https://wrongbaud.github.io/assets/img/kong/bad_function_data_section.png)
 
 If we try to disassemble this manually in ARM mode, no assembly is generated. If we disassemble it in Thumb mode, we see the following:
 
-![Bad Disassembly](https://wrongbaud.github.io/assets/img/kong/bad_disassembly.jpg)
+![Bad Disassembly](https://wrongbaud.github.io/assets/img/kong/bad_disassembly.png)
 
 While this sequence of bytes disassembles, this does not look like valid code. To those of you who are new to RE, this may seem a little ambiguous. How do we know that this probably isn't valid code? Some things to look for when determining whether disassembly is valid or not include:
 
@@ -130,7 +129,7 @@ We don't see any of these characteristics in the snippet posted above! So this i
 
 What might this data be? Remember that we're analyzing an entire Game Boy Advance Rom, so this data could be used to draw sprites, play audio, etc. In addition to code, there are tons of resources packed into this ROM, like sprites and audio files! Let's see if we can look at this ROM and determine where some of this data is located to tell our function analysis plugin to ignore these regions. If we look at the functions that have been defined thus far, we see a gap in the addresses:
 
-![Function Gap](https://wrongbaud.github.io/assets/img/kong/function_fap.png)
+![Function Gap](https://wrongbaud.github.io/assets/img/kong/function_gap.png)
 
 If we look at what is contained within this gap, some patterns can be found. Take this byte sequence, for example:
 
@@ -151,12 +150,12 @@ It's not looking great for this segment. If we continue to review this range man
 
 ![Bad Bytes](https://wrongbaud.github.io/assets/img/kong/bad_bytes_3.png)
 
-At this point, you're probably wondering what all of this extra data might be. Remember that this is an entire GBA ROM image. These images typically didn't contain any kind of filesystem for resource management or things of that nature, so the game's resources needed to be embedded into the ROM! This range could represent map data, tile data, audio effects, or any other in-game asset. For now, we are going to have our analysis script ignore the region between 0x3BDC and 0x2B42b0. 
+At this point, you're probably wondering what all of this extra data might be. Remember that this is an entire GBA ROM image. These images typically didn't contain any kind of filesystem for resource management or things of that nature, so the game's resources needed to be embedded into the ROM! This range could represent map data, tile data, audio effects, or any other in-game asset. For now, we are going to have our analysis script ignore the region between ```0x3BDC``` and ```0x2B42b0```. 
 
 While I don't want to do a line by line code review, I do want to highlight some of the more helpful API calls that the provided ```MakeFunctionsScript.java``` script takes advantage of:
 
 1. ```currentProgram.getMemory()``` - Returns the memory space of the program being analyzed
-2. ```askBytes``` - This function returns a sequence of bytes provided by the user
+2. ```askBytes()``` - This function returns a sequence of bytes provided by the user
 3. ```currentProgram.getMemory().getBlocks()``` - Returns an array of ```MemoryBlock``` objects that represent the memory map of the target binary
 4. ```memory.findBytes(start, end, functionBytes, null, true, monitor)``` - Searches the memory space for the provided byte sequence
 5. ```getFunctionContaining(found)``` - Returns the function that contains the address ```found```
@@ -228,18 +227,18 @@ This means that we want to look for all byte sequences that share the upper 6 bi
 We want to write this so that we can use it on other GBA ROMs in the future, so the first thing that I would like this script to do is ask the user for a region of memory to perform analysis on, we can do that with the following function:
 
 ```java
-	// Give the user an option to choose a start address and end address for the script
-	public Address[] getBlockInfo() throws Exception {
-		int regionCount = askInt("Get Num of Regions","How many different memory regions would you like to analyze?");
-		Address [] blocks = new Address[regionCount*2];
-		for (int x = 0;x < regionCount; x+=2) {
-			Address startAddress = askAddress("Get Start Address","Please enter the starting address of the region you wish to analyze");
-			Address endAddress = askAddress("Get End Address","Please enter the end address for the region you wish to analyze");
-			blocks[x] = startAddress;
-			blocks[x+1] = endAddress;
-		}
-		return blocks;
-	}
+// Give the user an option to choose a start address and end address for the script
+public Address[] getBlockInfo() throws Exception {
+    int regionCount = askInt("Get Num of Regions","How many different memory regions would you like to analyze?");
+    Address [] blocks = new Address[regionCount*2];
+    for (int x = 0;x < regionCount; x+=2) {
+        Address startAddress = askAddress("Get Start Address","Please enter the starting address of the region you wish to analyze");
+        Address endAddress = askAddress("Get End Address","Please enter the end address for the region you wish to analyze");
+        blocks[x] = startAddress;
+        blocks[x+1] = endAddress;
+    }
+    return blocks;
+}
 ```
 There are only a few API calls being used in the above loop:
 
@@ -250,52 +249,52 @@ We use this subroutine to define the regions that we want to perform the analysi
 
 ```java
 // Using the provided byte sequence and address range, iterate over the addresses and look for instructions!
-	public int getFunctions(Address start,Address end,byte[] inst_sequence) {
-		int funcCount = 0;
-		boolean keepSearching = true;
-		// Let the user know which byte sequence we are looking for.
-		print("Searching for byte sequence: " );
-		for(byte b: inst_sequence) {
-			print(String.format("%02X", b));
-		}
-		println("");
-		// Get the memory space for the current program that we are analyzing.
-		Memory memory = currentProgram.getMemory();
-		Address currentAddr = start;
-		while(keepSearching && (!monitor.isCancelled())&& (start.compareTo(end) <= 0)) {
-			// Search the memory region that we provided for our byte sequence
-			Address found = memory.findBytes(start, end, inst_sequence, null, true, monitor);
-			if(found != null){
-				if(getFunctionContaining(found) == null) {
-					//Create our command to disassemble code in thumb mode
-					ArmDisassembleCommand cmd = new ArmDisassembleCommand(found,null,true);;
-					cmd.applyTo(currentProgram);
-					if(cmd.getDisassembledAddressSet() != null){
-						// Code was properly disassembled, create a function!
-						Function func = createFunction(found, null);
-						if (func != null) {
-							println("Made function at address: " + found.toString());
-							// Add the length of our function here so that we don't have to iterate through all of the created code.
-							start = found.add(func.getBody().getNumAddresses());
-							funcCount++;
-							break;
-						}
-					}
-				}
-				start = found.add(2);
-			// Nothing was found with memory.findBytes, time to bail!
-			}else {
-				keepSearching = false;
-			}
-		}		
-		return funcCount;
-	}
+public int getFunctions(Address start,Address end,byte[] inst_sequence) {
+    int funcCount = 0;
+    boolean keepSearching = true;
+    // Let the user know which byte sequence we are looking for.
+    print("Searching for byte sequence: " );
+    for(byte b: inst_sequence) {
+        print(String.format("%02X", b));
+    }
+    println("");
+    // Get the memory space for the current program that we are analyzing.
+    Memory memory = currentProgram.getMemory();
+    Address currentAddr = start;
+    while(keepSearching && (!monitor.isCancelled())&& (start.compareTo(end) <= 0)) {
+        // Search the memory region that we provided for our byte sequence
+        Address found = memory.findBytes(start, end, inst_sequence, null, true, monitor);
+        if(found != null){
+            if(getFunctionContaining(found) == null) {
+                //Create our command to disassemble code in thumb mode
+                ArmDisassembleCommand cmd = new ArmDisassembleCommand(found,null,true);;
+                cmd.applyTo(currentProgram);
+                if(cmd.getDisassembledAddressSet() != null){
+                    // Code was properly disassembled, create a function!
+                    Function func = createFunction(found, null);
+                    if (func != null) {
+                        println("Made function at address: " + found.toString());
+                        // Add the length of our function here so that we don't have to iterate through all of the created code.
+                        start = found.add(func.getBody().getNumAddresses());
+                        funcCount++;
+                        break;
+                    }
+                }
+            }
+            start = found.add(2);
+        // Nothing was found with memory.findBytes, time to bail!
+        }else {
+            keepSearching = false;
+        }
+    }		
+    return funcCount;
+}
 ```
 
 So, what exactly is going on in the above loop? We provide a start and end address for the analysis and a byte sequence to search for. From there, we take advantage of the ```findBytes``` function, which will return addresses containing the provided byte sequence. 
 
 ```java
-	Address found = memory.findBytes(start, end, inst_sequence, null, true, monitor);
+Address found = memory.findBytes(start, end, inst_sequence, null, true, monitor);
 ```
 If a proper byte sequence is found, we check to see if it is already in a function. If not, we attempt to disassemble THUMB mode code at that address. 
 
@@ -325,19 +324,19 @@ if(cmd.getDisassembledAddressSet() != null){
 Finally we will tie both of these together in the ```run()``` function as follows:
 
 ```java
-	public void run() throws Exception {
-		println("GBA Function Generation");
-		int foundCount = 0;
-		byte [] inst_bytes = new byte[] {0x00,(byte)0xB5};
-		Address[] addrBlocks = getBlockInfo();
-		for(int inst_byte = 0; inst_byte< 0xFF;inst_byte++) {
-			for (int x = 0; x< addrBlocks.length; x += 2) {
-				inst_bytes[0] = (byte)inst_byte;
-				foundCount += getFunctions(addrBlocks[x],addrBlocks[x+1],inst_bytes);
-			}
-		}
-		println("Made "+foundCount+ " functions");
-	}
+public void run() throws Exception {
+    println("GBA Function Generation");
+    int foundCount = 0;
+    byte [] inst_bytes = new byte[] {0x00,(byte)0xB5};
+    Address[] addrBlocks = getBlockInfo();
+    for(int inst_byte = 0; inst_byte< 0xFF;inst_byte++) {
+        for (int x = 0; x< addrBlocks.length; x += 2) {
+            inst_bytes[0] = (byte)inst_byte;
+            foundCount += getFunctions(addrBlocks[x],addrBlocks[x+1],inst_bytes);
+        }
+    }
+    println("Made "+foundCount+ " functions");
+}
 ```
 
 After running this script and providing the previously mentioned regions, we generate 141 additional functions! Not bad for a few lines of Java that we borrowed from a pre-existing script. 
@@ -354,16 +353,15 @@ We can start by looking for instructions that contain the immediate value 7. We 
 
 ![Scalar Search](https://wrongbaud.github.io/assets/img/kong/7_search.png)
 
-There are 372 results, but only a handful of them utilize ```cmp``` instructions. The hypothesis here is that as you enter the password, a counter is incrementing with each character (notice that there is no "enter" button at the password screen and automatically parses the password after seven characters). After searching through the results containing a ```cmp```  with the value 7, we come across the function FUN_082ca72e that contains the following:
+There are 372 results, but only a handful of them utilize ```cmp``` instructions. The hypothesis here is that as you enter the password, a counter is incrementing with each character (notice that there is no "enter" button at the password screen and automatically parses the password after seven characters). After searching through the results containing a ```cmp```  with the value 7, we come across the function ```FUN_082ca72e``` that contains the following:
 
 ```c
-    if (in_stack_0000000c < 0x1e) {
-      draw_string(10,1,"Wrong PassWord");
-    }
-    else {
-      draw_string(10,1,"              ");
-    }
-  }
+if (in_stack_0000000c < 0x1e) {
+    draw_string(10,1,"Wrong PassWord");
+}
+else {
+    draw_string(10,1,"              ");
+}
 ```
 
 Alright, it looks like we are probably on the right track here; let's see what other functions this subroutine calls. We can do this in Ghidra by looking at the call tree. With the function selected in the decompiler window, click on the ```Window``` button in the navigation bar, and then click ```Function Call Trees```, the following window will appear:
@@ -597,9 +595,9 @@ LAB_082caac0:
 
 ```
 
-One of the first things that we notice when looking at this function is a large series of if statements assign a value (labeled ```input_code```) to a memory location pointed to by the variable that I have named ```PASSCODE_DEST```. If we examine the values for the various ```input_code``` assignments, we see that the highest one is 0x12. Why is this number significant? Remember that 0x11 possible characters can be entered from the password screen! 
+One of the first things that we notice when looking at this function is a large series of if statements assign a value (labeled ```input_code```) to a memory location pointed to by the variable that I have named ```PASSCODE_DEST```. If we examine the values for the various ```input_code``` assignments, we see that the highest one is ```0x12```. Why is this number significant? Remember that ```0x11``` possible characters can be entered from the password screen! 
 
-**But wait!** We see a 0x12 get assigned, but only 0x11 possible values available? Correct, the input codes are indexed at 1 and not 0, so this still adds up!
+**But wait!** We see a ```0x12``` get assigned, but only ```0x11``` possible values available? Correct, the input codes are indexed at ```1``` and not ```0```, so this still adds up!
 
 These values likely correspond with the character entered in the password screen, but how are they determined? We can see from the if statement that two variables determine the ```input_code``` which is later stored at the ```PASSCODE_DEST``` location: ```DAT_03004651``` and ```DAT_03004650```. Let's fire up mGBA and examine these memory values as we enter a password. We will also inspect the ```PASSCODE_DEST``` memory location and ```PWD_LEN_CNT``` and see how they are used. 
 
@@ -614,19 +612,19 @@ If "B" is selected, we see the following:
 
 If H is selected, we see:
 
-![Password Select 3](https://wrongbaud.github.io/assets/img/kong/passwd_select_2.png)
+![Password Select 3](https://wrongbaud.github.io/assets/img/kong/passwd_select_3.png)
 
 See the pattern yet? The values at these two memory locations represent the X and Y coordinates for the current character selection. These X and Y coordinates are then translated and used to assign the ```input_code``` value that eventually gets stored at ```PASSCODE_DEST```.
 
 For example, let's examine the following code segment:
 
 ```c
-    if (DAT_03004651 == 0) {
-      if (DAT_03004650 == 0) {
-        pwd_dest = &PASSCODE_DEST + PWD_LEN_CNT;
-        input_code = 10;
-        goto LAB_082caabe;
-      }
+if (DAT_03004651 == 0) {
+    if (DAT_03004650 == 0) {
+    pwd_dest = &PASSCODE_DEST + PWD_LEN_CNT;
+    input_code = 10;
+    goto LAB_082caabe;
+    }
 ```
 
 This means that if we enter an "A" , the actual value stored in memory at ```PASSCODE_DEST``` is 10. We can verify this by entering 5 A's and examining memory at the address pointed to by ```PASSCODE_DEST```, which before I labeled it was ```DAT_030027e0```.
@@ -664,10 +662,10 @@ At this point in our analysis, we have identified the following:
 So how are these memory locations used? What happens after a password is entered? Let's look at the original reason that we visited this subroutine. To begin with, the comparison against 7:
 
 ```c
-	if ((PWD_LEN_CNT != 7) ||
-       (bVar2 = check_password_1(PASSCODE_DEST,(uint)PWD_CHAR_1,(uint)PWD_CHAR_2,(uint)PWD_CHAR_3,
-                                 (uint)PWD_CHAR_4,(uint)PWD_CHAR_5,(uint)PWD_CHAR_6), bVar2 != 1))
-    goto LAB_082cac06;
+if ((PWD_LEN_CNT != 7) ||
+    (bVar2 = check_password_1(PASSCODE_DEST,(uint)PWD_CHAR_1,(uint)PWD_CHAR_2,(uint)PWD_CHAR_3,
+                                (uint)PWD_CHAR_4,(uint)PWD_CHAR_5,(uint)PWD_CHAR_6), bVar2 != 1))
+goto LAB_082cac06;
 ```
 
 We can see that if ```PWD_LEN_COUNT``` is not equal to seven, or the function that I have labeled ```check_password_1``` returns something not equal to 1 we branch to ```LAB_082cac06```, this location ultimately returns us to the top of the password processing loop. 
@@ -982,7 +980,7 @@ It would appear that _all_ valid passwords have to contain coded values less tha
 | L | 0x6 |
 | M | 0x7 |
 
-Next, we can see that based on the first character in the password, an array that I have labeled passwd_nonce is populated with values ```0-6```, this array is then iterated over in a sizeable do-while loop. 
+Next, we can see that based on the first character in the password, an array that I have labeled ```passwd_nonce``` is populated with values ```0-6```, this array is then iterated over in a sizeable do-while loop. 
 
 Let's regroup here and review how our inputs are processed:
 
@@ -1036,6 +1034,8 @@ After that, enable the PCode display by right-clicking the PCode bar and clickin
 ![PCode](https://wrongbaud.github.io/assets/img/kong/pcode_enable.png)
 
 **Note:** I would not recommend leaving this because it makes the disassembly challenging to read.
+
+![PCode](https://wrongbaud.github.io/assets/img/kong/pcode_in_listing.png)
 
 So why do we care about any of this? What does this have to do with our password cracking goals? Ghidra can be used to emulate these PCode operations! This will allow us to emulate a specific segment of PCode with specific register and memory values.  
 
@@ -1094,47 +1094,47 @@ The two functions that we use here are:
 After calling this function, our emuHelper object now has all of the proper memory values populated in order to emulate the ```check_password_1``` function. Now we need to actually emulate it, to do this we will use the following subroutine:
 
 ```java
-	public void passwd_crack(byte[] passwdVals) throws Exception{
-		returnAddress = getAddress(0x82cccba);
-		mainFunctionEntry = getSymbolAddress("check_password_1");
-		
-		// Obtain entry instruction in order to establish initial processor context
-		Instruction entryInstr = getInstructionAt(mainFunctionEntry);
-		// Instantiate our emulator helper
-		emuHelper = new EmulatorHelper(currentProgram);
-		char[] passwdChars = {'B','D','F','G','J','L','M'};
-		SetupGBAMemory(passwdVals);
-		emuHelper.writeRegister(emuHelper.getPCRegister(), mainFunctionEntry.getOffset());
-		
-		try {
-			emuHelper.setBreakpoint(returnAddress);
-			// Execution loop until return from function or error occurs
-			while (!monitor.isCancelled()) {
-				emuHelper.run(mainFunctionEntry, entryInstr, monitor);
-				Address executionAddress = emuHelper.getExecutionAddress();
-				if (monitor.isCancelled()) {
-					println("Emulation cancelled");
-					return;
-				}
-				if (executionAddress.equals(returnAddress)) {
-					byte retVal = emuHelper.readRegister("r0").byteValue();
-					if(retVal == 1) {
-						String password = "";
-						for(int x =0;x<7;x++) {
-							password += passwdChars[passwdVals[x]-1];
-						}
-						println("Valid password found with password Vals: " + Arrays.toString(passwdVals) + "Password: "+password);
-						bw.write(password);
-						bw.newLine();
-					}
-					return;
-				}
-			}
-		}
-		finally {
-			emuHelper.dispose();
-		}
-	}
+public void passwd_crack(byte[] passwdVals) throws Exception{
+    returnAddress = getAddress(0x82cccba);
+    mainFunctionEntry = getSymbolAddress("check_password_1");
+    
+    // Obtain entry instruction in order to establish initial processor context
+    Instruction entryInstr = getInstructionAt(mainFunctionEntry);
+    // Instantiate our emulator helper
+    emuHelper = new EmulatorHelper(currentProgram);
+    char[] passwdChars = {'B','D','F','G','J','L','M'};
+    SetupGBAMemory(passwdVals);
+    emuHelper.writeRegister(emuHelper.getPCRegister(), mainFunctionEntry.getOffset());
+    
+    try {
+        emuHelper.setBreakpoint(returnAddress);
+        // Execution loop until return from function or error occurs
+        while (!monitor.isCancelled()) {
+            emuHelper.run(mainFunctionEntry, entryInstr, monitor);
+            Address executionAddress = emuHelper.getExecutionAddress();
+            if (monitor.isCancelled()) {
+                println("Emulation cancelled");
+                return;
+            }
+            if (executionAddress.equals(returnAddress)) {
+                byte retVal = emuHelper.readRegister("r0").byteValue();
+                if(retVal == 1) {
+                    String password = "";
+                    for(int x =0;x<7;x++) {
+                        password += passwdChars[passwdVals[x]-1];
+                    }
+                    println("Valid password found with password Vals: " + Arrays.toString(passwdVals) + "Password: "+password);
+                    bw.write(password);
+                    bw.newLine();
+                }
+                return;
+            }
+        }
+    }
+    finally {
+        emuHelper.dispose();
+    }
+}
 	
 
 ```
@@ -1171,46 +1171,46 @@ The following ```try```/```catch``` block contains the code that will start the 
 With this subroutine, we can provide a password to test, set up memory appropriately and then emulate the PCode for our function of interest. We can then check the return value to see if a valid password was provided, if so we record that to a file. So now all we have to do is call this function 7^7 times with each possible password combination. To generate these combinations we'll use the following subroutine:
 
 ```java
-	private void permute(byte[] a, int k) {
-        int n = a.length;
-        if (k < 1 || k > n)
-            throw new IllegalArgumentException("Illegal number of positions.");
-        int[] indexes = new int[n];
-        int total = (int) Math.pow(n, k);
-        byte[] passTest = {1,1,1,1,1,1,1};
-        while (total-- > 0) {
-            for (int i = 0; i < n - (n - k); i++)
-                passTest[i] = a[indexes[i]];
-            try {
-				// Emulate our PCode!
-				passwd_crack(passTest);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            for (int i = 0; i < n; i++) {
-                if (indexes[i] >= n - 1) {
-                    indexes[i] = 0;
-                } else {
-                    indexes[i]++;
-                    break;
-                }
+private void permute(byte[] a, int k) {
+    int n = a.length;
+    if (k < 1 || k > n)
+        throw new IllegalArgumentException("Illegal number of positions.");
+    int[] indexes = new int[n];
+    int total = (int) Math.pow(n, k);
+    byte[] passTest = {1,1,1,1,1,1,1};
+    while (total-- > 0) {
+        for (int i = 0; i < n - (n - k); i++)
+            passTest[i] = a[indexes[i]];
+        try {
+            // Emulate our PCode!
+            passwd_crack(passTest);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        for (int i = 0; i < n; i++) {
+            if (indexes[i] >= n - 1) {
+                indexes[i] = 0;
+            } else {
+                indexes[i]++;
+                break;
             }
         }
     }
+}
 ```
 
 Finally, we can wrap all of this up in our main run function:
 
 ```java
-	protected void run() throws Exception {
-		println("Kong Emulation Script Starting...");
-		fw = new FileWriter("/home/wrongbaud/kong-passwords.txt", true);
-		bw = new BufferedWriter(fw);
-        byte[] chars = {1,2,3,4,5,6,7};
-		permute(chars, 7);
-		bw.close();
-	}
+protected void run() throws Exception {
+    println("Kong Emulation Script Starting...");
+    fw = new FileWriter("/home/wrongbaud/kong-passwords.txt", true);
+    bw = new BufferedWriter(fw);
+    byte[] chars = {1,2,3,4,5,6,7};
+    permute(chars, 7);
+    bw.close();
+}
 ```
 
 Let's run it! We can select our ```KongBruteForce.java``` script from the Scripts window and let it wreak havoc on this binary. 
@@ -1218,7 +1218,7 @@ Let's run it! We can select our ```KongBruteForce.java``` script from the Script
 ```
 KongBruteForce.java> Kong Emulation Script Starting...
 KongBruteForce.java> 2021/04/22 23:32:45
-KongBruteForce.java> Kong Emulation Script Ending...found 882 functions
+KongBruteForce.java> Kong Emulation Script Ending...found 882 passwords
 KongBruteForce.java> 2021/04/23 01:34:46
 KongBruteForce.java> Finished!
 ```
@@ -1233,7 +1233,7 @@ Result of passcode GJJBGBM
 ![4 Lives](https://wrongbaud.github.io/assets/img/kong/4_lives.png)
 
 Result of Passcode GLJBFBM
-![7 Lives](https://wrongbaud.github.io/assets/img/kong/3lives.png)
+![7 Lives](https://wrongbaud.github.io/assets/img/kong/3_lives.png)
 
 I have attached the [codes](https://github.com/wrongbaud/ghidra-utils/blob/main/GBA/kong-passwords.txt) at the end of this post. There are a _lot_ that I haven't tested, so have fun. We have 882 passcodes for the GBA ROM Kong: King of Atlantis!
 
