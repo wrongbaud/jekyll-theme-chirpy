@@ -1251,7 +1251,7 @@ Using these techniques, we were able to identify the function containing the pas
 
 All of the scripts used here can be found in my [ghidra-utils](https://github.com/wrongbaud/ghidra-utils) repository. I plan on updating this with scripts that I write throughout these posts and with links to other helpful Ghidra resources. All pull requests are welcome!
 
-If you would like to learn more about Ghidra, check out [this free course](https://hackaday.io/course/172292-introduction-to-reverse-engineering-with-ghidra) that I  put together with HackadayU. If you want to learn more about reverse engineering embedded systems and extend Ghidra to analyze the code that runs on them [my courses through VoidStar Security](https://www.voidstarsec.com/hardware-training) may be of interest to you. Lastly, if you have any questions about this post or want to reach out, please feel free to do so on [Twitter](twitter.com/wrongbaud) or at contact@voidstarsec.com
+If you would like to learn more about Ghidra, check out [this free course](https://hackaday.io/course/172292-introduction-to-reverse-engineering-with-ghidra) that I  put together with HackadayU. If you want to learn more about reverse engineering embedded systems and extend Ghidra to analyze the code that runs on them [my courses through VoidStar Security](https://www.voidstarsec.com/hardware-training) may be of interest to you. Lastly, if you have any questions about this post or want to reach out, please feel free to do so on [Twitter](https://twitter.com/wrongbaud) or at contact@voidstarsec.com
 
 ## Appendix
 
