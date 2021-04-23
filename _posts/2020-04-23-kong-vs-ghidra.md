@@ -967,7 +967,6 @@ Here we have another lengthy subroutine, but there is an interesting check at th
   }
 ```
 
-Bas
 It would appear that _all_ valid passwords have to contain coded values less than 8! This means that the following characters are the _only_ good characters for a password:
 
 | Character | Code | 
