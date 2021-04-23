@@ -994,7 +994,7 @@ But wait a minute ... we're supposed to be channeling our favorite kaiju with th
 
 ![Ghidra Wailing](https://64.media.tumblr.com/75b1ec67a8d075a3cd891f2e8c473a01/6088640a3acbc2ce-b8/s640x960/293917fca6f3a4d1a4a39ef29e8e3a590e417861.gifv)
 
-Remember, we know that only 7 possible values can be provided to this function, and those values themselves must be less than 7. This leaves us with 7^7 possible combinations. Let's ask ourselves a question that is almost always relevant when reverse engineering: What Would Kong/Godzilla/Ghidra do?
+Remember, we know that only 7 possible values can be provided to this function, and those values themselves must be less than 8. This leaves us with 7^7 possible combinations. Let's ask ourselves a question that is almost always relevant when reverse engineering: What Would Kong/Godzilla/Ghidra do?
 
 **Brute Force!**
 
