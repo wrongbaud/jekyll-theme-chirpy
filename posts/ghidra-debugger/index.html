@@ -1,0 +1,449 @@
+<!DOCTYPE html><html lang="en" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><meta name="theme" content="Chirpy v2.5.1"><meta name="generator" content="Jekyll v4.2.0" /><meta property="og:title" content="A first look at Ghidra’s Debugger - Game Boy Advance Edition" /><meta name="author" content="wrongbaud" /><meta property="og:locale" content="en_US" /><meta name="description" content="Building Ghidra and reviewing the debugging features" /><meta property="og:description" content="Building Ghidra and reviewing the debugging features" /><link rel="canonical" href="https://wrongbaud.github.io/posts/ghidra-debugger/" /><meta property="og:url" content="https://wrongbaud.github.io/posts/ghidra-debugger/" /><meta property="og:site_name" content="Wrongbaud’s Blog" /><meta property="og:image" content="https://wrongbaud.github.io/" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2020-12-19T08:06:31+08:00" /><meta name="twitter:card" content="summary_large_image" /><meta property="twitter:image" content="https://wrongbaud.github.io/" /><meta property="twitter:title" content="A first look at Ghidra’s Debugger - Game Boy Advance Edition" /><meta name="twitter:site" content="@wrongbaud" /><meta name="twitter:creator" content="@wrongbaud" /><meta name="google-site-verification" content="google_meta_tag_verification" /> <script type="application/ld+json"> {"description":"Building Ghidra and reviewing the debugging features","@type":"BlogPosting","headline":"A first look at Ghidra’s Debugger - Game Boy Advance Edition","dateModified":"2020-12-19T08:06:31+08:00","url":"https://wrongbaud.github.io/posts/ghidra-debugger/","datePublished":"2020-12-19T08:06:31+08:00","image":"https://wrongbaud.github.io/","mainEntityOfPage":{"@type":"WebPage","@id":"https://wrongbaud.github.io/posts/ghidra-debugger/"},"author":{"@type":"Person","name":"wrongbaud"},"@context":"https://schema.org"}</script><title>A first look at Ghidra's Debugger - Game Boy Advance Edition | Wrongbaud's Blog</title><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon.png"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon-precomposed.png"><link rel="apple-touch-icon" sizes="57x57" href="/assets/img/favicons/apple-icon-57x57.png"><link rel="apple-touch-icon" sizes="60x60" href="/assets/img/favicons/apple-icon-60x60.png"><link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicons/apple-icon-72x72.png"><link rel="apple-touch-icon" sizes="76x76" href="/assets/img/favicons/apple-icon-76x76.png"><link rel="apple-touch-icon" sizes="114x114" href="/assets/img/favicons/apple-icon-114x114.png"><link rel="apple-touch-icon" sizes="120x120" href="/assets/img/favicons/apple-icon-120x120.png"><link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicons/apple-icon-144x144.png"><link rel="apple-touch-icon" sizes="152x152" href="/assets/img/favicons/apple-icon-152x152.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-icon-180x180.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/img/favicons/android-icon-192x192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="/assets/img/favicons/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/manifest.json"><meta name='msapplication-config' content='/assets/img/favicons/browserconfig.xml'><meta name="msapplication-TileColor" content="#ffffff"><meta name="msapplication-TileImage" content="/assets/img/favicons/ms-icon-144x144.png"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://fonts.gstatic.com"><link rel="preconnect" href="https://www.google-analytics.com" crossorigin="use-credentials"><link rel="dns-prefetch" href="https://www.google-analytics.com"><link rel="preconnect" href="https://www.googletagmanager.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="preconnect" href="cdn.jsdelivr.net"><link rel="dns-prefetch" href="cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha256-LA89z+k9fjgMKQ/kq4OO2Mrf8VltYml/VES+Rg0fh20=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.11.2/css/all.min.css" integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ=" crossorigin="anonymous"><link rel="preload" as="style" href="/assets/css/post.css"><link rel="stylesheet" href="/assets/css/post.css"><link rel="preload" as="style" href="/assets/css/lib/bootstrap-toc.min.css"><link rel="stylesheet" href="/assets/css/lib/bootstrap-toc.min.css" /> <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script> <script async src="https://cdn.jsdelivr.net/combine/npm/popper.js@1.15.0,npm/bootstrap@4/dist/js/bootstrap.min.js"></script> <script async src="/assets/js/post.min.js"></script> <script defer src="/app.js"></script><body data-spy="scroll" data-target="#toc"><div id="sidebar" class="d-flex flex-column"><div id="nav-wrapper"><div id="profile-wrapper" class="d-flex flex-column"><div id="avatar" class="d-flex justify-content-center"> <a href="/" alt="avatar"> <img src="https://i2.wp.com/wasistdas.co.uk/Owlsploitation/wp-content/uploads/2011/05/bubo2.jpg" alt="avatar" onerror="this.style.display='none'"> </a></div><div class="profile-text mt-3"><div class="site-title"> <a href="/">Wrongbaud's Blog</a></div><div class="site-subtitle font-italic">Hardware / Software Reverse Engineering</div></div></div><ul class="nav flex-column"><li class="nav-item d-flex justify-content-center "> <a href="/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-home ml-xl-3 mr-xl-3 unloaded"></i> <span>HOME</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/categories/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-stream ml-xl-3 mr-xl-3 unloaded"></i> <span>CATEGORIES</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/tags/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-tags ml-xl-3 mr-xl-3 unloaded"></i> <span>TAGS</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/archives/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-archive ml-xl-3 mr-xl-3 unloaded"></i> <span>ARCHIVES</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/about/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-info ml-xl-3 mr-xl-3 unloaded"></i> <span>ABOUT</span> </a></ul></div><div class="sidebar-bottom d-flex flex-wrap justify-content-around mt-4"> <span id="mode-toggle-wrapper"> <i class="mode-toggle fas fa-sun" dark-mode-invisible></i> <i class="mode-toggle fas fa-moon" light-mode-invisible></i> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return "mode"; } static get DARK_MODE() { return "dark"; } static get LIGHT_MODE() { return "light"; } constructor() { if (this.mode != null) { if (this.mode == ModeToggle.DARK_MODE) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } var self = this; /* always follow the system prefers */ this.sysDarkPrefers.addListener(function() { if (self.mode != null) { if (self.mode == ModeToggle.DARK_MODE) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } }); } /* constructor() */ setDark() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { $('html').removeAttr(ModeToggle.MODE_KEY); sessionStorage.removeItem(ModeToggle.MODE_KEY); } get sysDarkPrefers() { return window.matchMedia("(prefers-color-scheme: dark)"); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode == ModeToggle.DARK_MODE; } get isLightMode() { return this.mode == ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } } /* flipMode() */ } /* ModeToggle */ let toggle = new ModeToggle(); $(".mode-toggle").click(function() { toggle.flipMode(); }); </script> </span> <span class="icon-border"></span> <a href="https://github.com/wrongbaud" aria-label="github" target="_blank" rel="noopener"> <i class="fab fa-github-alt"></i> </a> <a href="https://twitter.com/wrongbaud" aria-label="twitter" target="_blank" rel="noopener"> <i class="fab fa-twitter"></i> </a> <a href=" javascript:location.href = 'mailto:' + ['wrongbaud','gmail.com'].join('@')" aria-label="email" > <i class="fas fa-envelope"></i> </a> <a href="/feed.xml" aria-label="rss" > <i class="fas fa-rss"></i> </a></div></div><div id="topbar-wrapper" class="row justify-content-center topbar-down"><div id="topbar" class="col-11 d-flex h-100 align-items-center justify-content-between"> <span id="breadcrumb"> <span> <a href="/"> Posts </a> </span> <span>A first look at Ghidra's Debugger - Game Boy Advance Edition</span> </span> <i id="sidebar-trigger" class="fas fa-bars fa-fw"></i><div id="topbar-title"> Post</div><i id="search-trigger" class="fas fa-search fa-fw"></i> <span id="search-wrapper" class="align-items-center"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" placeholder="Search..."> <i class="fa fa-times-circle fa-fw" id="search-cleaner"></i> </span> <span id="search-cancel" >Cancel</span></div></div><div id="main-wrapper"><div id="main"><div class="row"><div id="post-wrapper" class="col-12 col-lg-11 col-xl-8"><div class="post pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><h1 data-toc-skip>A first look at Ghidra's Debugger - Game Boy Advance Edition</h1><div class="post-meta text-muted d-flex flex-column"><div> Posted <span class="timeago " data-toggle="tooltip" data-placement="bottom" title="Sat, Dec 19, 2020, 8:06 AM +0800" > Dec 19, 2020 <i class="unloaded">2020-12-19T08:06:31+08:00</i> </span> by <span class="author"> wrongbaud </span></div><div> Updated <span class="timeago lastmod" data-toggle="tooltip" data-placement="bottom" title="Fri, Feb 12, 2021, 11:43 AM -0500" > Feb 12 <i class="unloaded">2021-02-13T00:43:32+08:00</i> </span></div></div><div class="post-content"> <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="" class="post-preview-img"><h1 id="a-first-look-at-ghidras-debugger---game-boy-advance-edition">A first look at Ghidra’s Debugger - Game Boy Advance Edition</h1><h2 id="overview">Overview</h2><p><a href="https://twitter.com/NSACyber/status/1339652646513291264">Yesterday</a> the NSA Twitter account announced that a new branch of Ghidra has been release with the long-awaited debugging capability. This will allow for single-step debugging of a program within <a href="https://hackaday.io/course/172292-introduction-to-reverse-engineering-with-ghidra">Ghidra</a> through a GDB stub or other various debug mechanisms. To celebrate this (and my being stuck at home quarantining…) I wanted to review how to build this version of Ghidra and give an example of how to use this debugger on a fun target.</p><p>This post will explain the following:</p><ul><li>How to build the latest (or any) version of Ghidra using a <a href="https://github.com/dukebarman/ghidra-builder">Docker Container</a><li>How to build the Ghidra Eclipse plugins<li>How to build a program <a href="https://github.com/SiD3W4y/GhidraGBA">loader</a> for Ghidra<li>Debugging a program with Ghidra using the GDB stub<li>Use the debugging capability to help us learn about how passwords are processed for a GBA game</ul><p>For this post, we’re going to be taking a look at the Game Boy Advance game Spiderman: Mysterio’s Menace. I’ve been very much inspired by all of the awesome work that <a href="https://youtu.be/VVbRe7wr3G4">stacksmashing and Liveoverflow have been doing regarding these topics</a>. This was a game that I spent a lot of time playing and it’s always fun revisiting childhood favorites from an RE perspective. The ultimate goal is to demonstrate how to properly load this ROM using a custom loader, and connect to an emulator’s GDB stub using Ghidra’s debugging features.</p><p><strong>RE Note/Tangent:</strong> When taking on a new reversing project, it’s important to try to compartmentalize goals and targets. For example, if we said we just want to <em>reverse</em> this game, that opens up endless possibilities. We could reverse engineer the collision detection, how enemy AI works, or how level maps are generated. For this post, we will pick a specific target and take a look at the password mechanism in use by this game.</p><p>I am doing all of this work on an Ubuntu 20.04 machine, with the latest updates.</p><h2 id="building-ghidra">Building Ghidra</h2><p>First things first, this debugger branch has not yet been included in an official release so we’re going to have to build it ourselves. Luckily for us <a href="https://github.com/dukebarman/ghidra-builder">dukebarman</a> has put together a docker container for us to do this, all we need to do is modify the <code class="language-plaintext highlighter-rouge">build_ghidra.sh</code> script to checkout the debugger branch, see the following line below:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre>git clone https://github.com/NationalSecurityAgency/ghidra -b debugger
+</pre></table></code></div></div><p>We are also going to build the Eclipse development extensions for this version of Ghidra, this will help us later on when we build a loader and write our analysis scripts. To do this we add the following line to the <code class="language-plaintext highlighter-rouge">build_ghidra.sh</code> script:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre>gradle prepDev
+gradle eclipse -PeclipsePDE
+</pre></table></code></div></div><p>Next follow the instructions in the <code class="language-plaintext highlighter-rouge">README</code>:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+</pre><td class="rouge-code"><pre>cd ghidra-builder
+sudo docker-tpl/build
+cd workdir
+sudo ../docker-tpl/run ./build_ghidra.sh
+</pre></table></code></div></div><p>This will take some time, so maybe go grab a coffee or two and come back to your freshly built Ghidra. The resulting build can be found in <code class="language-plaintext highlighter-rouge">workdir/out</code>:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/gba-re-gbd/ghidra-builder/workdir$ ls out/
+ghidra_9.3_DEV_20201218_linux64.zip
+</pre></table></code></div></div><p>Unzip this file, and you can launch Ghidra via the <code class="language-plaintext highlighter-rouge">./ghidraRun</code> script. For this post, I will unzip this into the <code class="language-plaintext highlighter-rouge">ghidra-builder/workdir</code> directory because we’re going to be using the docker container to build a Ghidra loader for this version of Ghidra. If you’re following along, your workdir directory should look like this:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/gba-re-gbd/ghidra-builder/workdir$ ls
+build_ghidra.sh  ghidra  ghidra_9.3_DEV out  set_exec_flag.sh
+</pre></table></code></div></div><h2 id="building-eclipse-plugins">Building Eclipse Plugins</h2><p>Now that we have a new version of Ghidra built, we also need to build the GhidraDev plugin for Eclipse. The eclipse projects can be found in the <code class="language-plaintext highlighter-rouge">ghidra-builder/workdir/ghidra/GhidraBuild/EclipsePlugins/GhidraDev</code> directory.</p><ol><li>Install <a href="https://www.eclipse.org/downloads/packages/installer">Eclipse</a><ul><li>Select the Java IDE</ul><li>Install CDT, PyDev, and Plugin Development Environment<ul><li>This can be done from the Eclipse marketplace</ul><li>Import the GhidraDevFeature and GhidraDevPlugin projects<ul><li>These can be found in the <code class="language-plaintext highlighter-rouge">ghidra-builder/workdir/ghidra/GhidraBuild/EclipsePlugins/GhidraDev/</code> directory<li><code class="language-plaintext highlighter-rouge">File</code> -&gt; <code class="language-plaintext highlighter-rouge">Import</code> -&gt; <code class="language-plaintext highlighter-rouge">General</code> -&gt; <code class="language-plaintext highlighter-rouge">Existing Projects into Workspace</code><li>Add <code class="language-plaintext highlighter-rouge">ghidra-builder/workdir/ghidra/GhidraBuild/EclipsePlugins/GhidraDev</code><li>Select “Search for nested projects”<li>Import the projects!<li><strong>Note:</strong> you may see some build errors when these are imported, you can ignore these as you are just exporting the plugin!</ul><li>With these projects loaded, we can now <a href="https://github.com/NationalSecurityAgency/ghidra/blob/debugger/GhidraBuild/EclipsePlugins/GhidraDev/GhidraDevPlugin/build_README.txt">export the plugin</a><ul><li><code class="language-plaintext highlighter-rouge">File</code> -&gt; <code class="language-plaintext highlighter-rouge">Export</code><li><code class="language-plaintext highlighter-rouge">Plug-in Development</code> -&gt; <code class="language-plaintext highlighter-rouge">Deployable Features</code><li><code class="language-plaintext highlighter-rouge">ghidradev.ghidradev</code><li>Select an archive location for the plugin to be exported to<li>Click Finish!</ul></ol><p>Now we have our Ghidra plugin, built for our custom version of Ghidra that we can load via <code class="language-plaintext highlighter-rouge">Help</code>-&gt;<code class="language-plaintext highlighter-rouge">Install New Software</code>.</p><p>And with that, we have built Ghidra from the <code class="language-plaintext highlighter-rouge">debugger</code> branch, and have also built the Eclipse development extensions so we can build plugins for our new version of Ghidra!</p><p><strong>Note:</strong> I just want to take a second to outline just how incredible the <a href="https://github.com/NationalSecurityAgency/ghidra/blob/15c1f43fa51f210836cb451aff587b227dffe0a7/DevGuide.md">help docs</a> are for Ghidra. From the P-Code manuals to the instructions on building and exporting these plugins - the project is very well documented.</p><h2 id="building-the-rom-loader">Building the ROM Loader</h2><p>To properly analyze this ROM in Ghidra, we are going to need to define all of the <a href="https://problemkaputt.de/gbatek.htm#gbamemorymap">memory regions and peripherals</a> for the Game Boy Advance. Luckily for us, <a href="https://github.com/SiD3W4y/GhidraGBA">SiD3W4y</a> on GitHub has already written one.</p><p>If you are a regular reader of this blog, a <a href="https://wrongbaud.github.io/posts/writing-a-ghidra-loader/">ghidra loader</a> may be a familiar subject to you. If not, the purpose of a Ghidra loader is to set up all of the necessary memory regions, identify any debug information or symbols that may be present in the file, and provide as much information as possible about the target file. The loader that was mentioned before outlines all of the basic peripherals of the GBA and is an excellent example loader to work with, let’s start by cloning it into the <code class="language-plaintext highlighter-rouge">ghidra-builder/workdir</code> directory. We’re doing this because we’re going to use the same docker container we built Ghidra with to build this loader.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre>cd ghidra-builder/workdir
+git clone https://github.com/SiD3W4y/GhidraGBA
+sudo ../docker-tpl/run /bin/bash
+dockerbot@797eb43ce05f:/$ cd /files/GhidraGBA 
+dockerbot@797eb43ce05f:/files/GhidraGBA$ export GHIDRA_INSTALL_DIR=/files/ghidra_9.3_DEV/
+dockerbot@797eb43ce05f:/files/GhidraGBA$ gradle
+dockerbot@797eb43ce05f:/files/GhidraGBA$ cp dist/ghidra_9.3_DEV_20201218_GhidraGBA.zip ../ghidra_9.3_DEV/Extensions/Ghidra/
+dockerbot@797eb43ce05f:/files/GhidraGBA$ exit
+exit
+</pre></table></code></div></div><p>In case the above steps are confusing, what we are doing is:</p><ol><li>Launching the docker container<li>Building the GhidraGBA extension, providing the path to our installation<li>Copying it to Ghidra’s extensions directory (so it will show up under the Install Extensions menu)<li>Exiting the docker container</ol><p>Launch Ghidra via <code class="language-plaintext highlighter-rouge">ghidraRun</code> and go to <code class="language-plaintext highlighter-rouge">File</code>-&gt; <code class="language-plaintext highlighter-rouge">Install Extensions</code>. Select the GhidraGBA loader and click <code class="language-plaintext highlighter-rouge">OK</code>. You will need to restart Ghidra for the change to take effect. Now when you load a GBA ROM you should see the following:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/gba.png" alt="GBA" /></p><p>After running the auto analysis, Ghidra seems to make a pretty quick sense of the ROM. There are a lot of functions defined and things are looking good. So the next step is to figure out some way to narrow down what we care about in this ROM image, in other words, we need to find our needle in the haystack. Let’s start by examining how the password system works in this game by entering a few passwords.</p><h2 id="analyzing-the-rom">Analyzing the Rom</h2><p>As mentioned before, our goal here is to try to understand the password system in use by this game. If we attempt to enter a password, the following screen is displayed:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/rom-1.png" alt="ROM1" /></p><p>Note that we have all of the consonants and no vowels and numbers “0-9”, and our passwords are only 5 characters long. This is a nice starting point for us as reverse engineers. We can use this information to help us narrow down functions of interest. For example- let’s look through the strings in the ROM and see if these values are represented in a string somewhere. If we open the strings window, <code class="language-plaintext highlighter-rouge">Window</code> -&gt; <code class="language-plaintext highlighter-rouge">Defined Strings</code>, and filter for the first 5 characters available to us as password characters we see the following:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/strings-password-characters.png" alt="" /></p><p>So far so good - we only have two instances of this string in use. One is located at <code class="language-plaintext highlighter-rouge">0x804c11fc</code> and one at <code class="language-plaintext highlighter-rouge">0x84b86f0</code>. Upon examination of the first one, we see that this string gets passed to a function in the subroutine located at <code class="language-plaintext highlighter-rouge">0x8003358</code>, see below:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+</pre><td class="rouge-code"><pre><span class="n">undefined4</span> <span class="nf">passwd_1</span><span class="p">(</span><span class="kt">int</span> <span class="n">param_1</span><span class="p">,</span><span class="kt">int</span> <span class="n">param_2</span><span class="p">)</span>
+
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">iVar1</span><span class="p">;</span>
+  <span class="n">uint</span> <span class="n">uVar2</span><span class="p">;</span>
+  <span class="n">uint</span> <span class="n">uVar3</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="n">undefined</span> <span class="n">auStack52</span> <span class="p">[</span><span class="mi">36</span><span class="p">];</span>
+  <span class="n">undefined4</span> <span class="n">uStack4</span><span class="p">;</span>
+  
+  <span class="n">uStack4</span> <span class="o">=</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="n">FUN_080231f4</span><span class="p">(</span><span class="n">auStack52</span><span class="p">,</span><span class="s">"BCDFGHJKLMNPQRSTVWXYZ0123456789-"</span><span class="p">,</span><span class="mh">0x21</span><span class="p">);</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x8c</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">FUN_080025f8</span><span class="p">(</span><span class="n">param_1</span><span class="p">);</span>
+  <span class="n">FUN_08002674</span><span class="p">(</span><span class="n">param_1</span><span class="p">);</span>
+  <span class="n">FUN_08002714</span><span class="p">(</span><span class="n">param_1</span><span class="p">);</span>
+  <span class="n">FUN_0800282c</span><span class="p">(</span><span class="n">param_1</span><span class="p">);</span>
+  <span class="n">iVar1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">uVar3</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x8c</span><span class="p">);</span>
+  <span class="n">uVar2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">do</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">undefined</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_2</span> <span class="o">+</span> <span class="n">iVar1</span><span class="p">)</span> <span class="o">=</span> <span class="n">auStack52</span><span class="p">[</span><span class="n">uVar3</span> <span class="o">&gt;&gt;</span> <span class="p">(</span><span class="n">uVar2</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">];</span>
+    <span class="n">uVar2</span> <span class="o">=</span> <span class="n">uVar2</span> <span class="o">+</span> <span class="mi">5</span><span class="p">;</span>
+    <span class="n">iVar1</span> <span class="o">=</span> <span class="n">iVar1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">iVar1</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">uStack4</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>Notice also the while loop that is looping while a variable is less than five, this is a good indicator that this function might be useful as we know that the password length is 5! Let’s label it <code class="language-plaintext highlighter-rouge">passwd_1</code> and move onto the other uses of our character string. The next one that we can see is in the function at <code class="language-plaintext highlighter-rouge">0x8002CEC</code>, the decompilation can be seen below:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+</pre><td class="rouge-code"><pre><span class="n">undefined8</span> <span class="nf">passwd_2</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">iVar1</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">iVar2</span><span class="p">;</span>
+  <span class="n">uint</span> <span class="n">uVar3</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="n">undefined</span> <span class="n">local_98</span> <span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+  <span class="n">undefined</span> <span class="n">local_93</span><span class="p">;</span>
+  <span class="n">undefined</span> <span class="n">auStack144</span> <span class="p">[</span><span class="mi">36</span><span class="p">];</span>
+  <span class="n">undefined</span> <span class="n">auStack108</span> <span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+  <span class="n">undefined</span> <span class="n">auStack100</span> <span class="p">[</span><span class="mi">72</span><span class="p">];</span>
+  <span class="n">undefined4</span> <span class="n">uStack4</span><span class="p">;</span>
+  
+  <span class="n">uStack4</span> <span class="o">=</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="n">FUN_08000b0c</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+  <span class="n">DAT_03001fd0</span><span class="p">.</span><span class="n">_0_2_</span> <span class="o">=</span> <span class="mh">0x1444</span><span class="p">;</span>
+  <span class="n">DISPCNT</span> <span class="o">=</span> <span class="mh">0x1444</span><span class="p">;</span>
+  <span class="n">FUN_0801e330</span><span class="p">(</span><span class="o">&amp;</span><span class="n">DAT_0838277c</span><span class="p">);</span>
+  <span class="n">iVar1</span> <span class="o">=</span> <span class="n">DAT_03001fe0</span><span class="p">;</span>
+  <span class="n">FUN_080231f4</span><span class="p">(</span><span class="n">auStack144</span><span class="p">,</span><span class="s">"BCDFGHJKLMNPQRSTVWXYZ0123456789-"</span><span class="p">,</span><span class="mh">0x21</span><span class="p">);</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">+</span> <span class="mh">0x8c</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">FUN_080025f8</span><span class="p">(</span><span class="n">iVar1</span><span class="p">);</span>
+  <span class="n">FUN_08002674</span><span class="p">(</span><span class="n">iVar1</span><span class="p">);</span>
+  <span class="n">FUN_08002714</span><span class="p">(</span><span class="n">iVar1</span><span class="p">);</span>
+  <span class="n">FUN_0800282c</span><span class="p">(</span><span class="n">iVar1</span><span class="p">);</span>
+  <span class="n">iVar2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">uVar3</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">do</span> <span class="p">{</span>
+    <span class="n">local_98</span><span class="p">[</span><span class="n">iVar2</span><span class="p">]</span> <span class="o">=</span> <span class="n">auStack144</span><span class="p">[</span><span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">+</span> <span class="mh">0x8c</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="p">(</span><span class="n">uVar3</span> <span class="o">&amp;</span> <span class="mh">0xff</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0x1f</span><span class="p">];</span>
+    <span class="n">uVar3</span> <span class="o">=</span> <span class="n">uVar3</span> <span class="o">+</span> <span class="mi">5</span><span class="p">;</span>
+    <span class="n">iVar2</span> <span class="o">=</span> <span class="n">iVar2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">iVar2</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">);</span>
+  <span class="n">local_93</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">FUN_0801d1bc</span><span class="p">(</span><span class="n">auStack108</span><span class="p">,</span><span class="n">local_98</span><span class="p">);</span>
+  <span class="n">FUN_0801d92c</span><span class="p">(</span><span class="n">DAT_03001ff0</span><span class="p">,</span><span class="mh">0x10</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+  <span class="n">FUN_08000b0c</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)(</span><span class="n">DAT_03002028</span> <span class="o">+</span> <span class="mh">0xc</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x200</span><span class="p">;</span>
+  <span class="n">FUN_08000f1c</span><span class="p">();</span>
+  <span class="n">iVar1</span> <span class="o">=</span> <span class="n">FUN_0801d26c</span><span class="p">(</span><span class="n">auStack108</span><span class="p">);</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)(</span><span class="n">DAT_03002028</span> <span class="o">+</span> <span class="mh">0xc</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="n">FUN_08000f1c</span><span class="p">();</span>
+  <span class="n">FUN_0801dcac</span><span class="p">(</span><span class="n">DAT_03001ff0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+  <span class="n">FUN_08000b0c</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span>
+  <span class="n">FUN_08004408</span><span class="p">(</span><span class="n">auStack100</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">CONCAT44</span><span class="p">(</span><span class="n">uStack4</span><span class="p">,(</span><span class="n">uint</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>Once again we see the character string being passed into a function, and we also see another while loop that runs for 5 iterations - let’s label this one as <code class="language-plaintext highlighter-rouge">passwd_2</code> and move on to the next usage. The string located at <code class="language-plaintext highlighter-rouge">0x84b86f0</code> is also used in two subroutines, investigating the first one located at <code class="language-plaintext highlighter-rouge">FUN_0801c37c</code>:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+</pre><td class="rouge-code"><pre><span class="n">undefined4</span> <span class="nf">render_pw_screen</span><span class="p">(</span><span class="kt">int</span> <span class="n">param_1</span><span class="p">)</span>
+
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">iVar1</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">iVar2</span><span class="p">;</span>
+  <span class="n">uint</span> <span class="n">uVar3</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="n">uVar4</span><span class="p">;</span>
+  <span class="n">uint</span> <span class="n">uVar5</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">local_1c</span> <span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+  <span class="n">undefined4</span> <span class="n">uStack4</span><span class="p">;</span>
+  
+  <span class="n">uStack4</span> <span class="o">=</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="n">iVar2</span> <span class="o">=</span> <span class="n">FUN_0801b834</span><span class="p">(</span><span class="n">DAT_03001ffc</span><span class="p">,</span><span class="s">"@ - Accept   &amp; - Backspace"</span><span class="p">);</span>
+  <span class="n">iVar1</span> <span class="o">=</span> <span class="n">DAT_03001ffc</span><span class="p">;</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">DAT_03001ffc</span> <span class="o">+</span> <span class="mh">0x90</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0xf0U</span> <span class="o">-</span> <span class="n">iVar2</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="o">*</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">+</span> <span class="mh">0x94</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x96</span><span class="p">;</span>
+  <span class="n">FUN_0801b764</span><span class="p">(</span><span class="n">iVar1</span><span class="p">,</span><span class="s">"@ - Accept   &amp; - Backspace"</span><span class="p">);</span>
+  <span class="n">uVar3</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x51c</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">uVar3</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">uVar5</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">uVar3</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">do</span> <span class="p">{</span>
+        <span class="n">local_1c</span><span class="p">[</span><span class="n">uVar5</span><span class="p">]</span> <span class="o">=</span> <span class="s">"BCDFGHJKLMNPQRSTVWXYZ0123456789-"</span><span class="p">[</span><span class="o">*</span><span class="p">(</span><span class="n">byte</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x520</span> <span class="o">+</span> <span class="n">uVar5</span><span class="p">)];</span>
+        <span class="n">uVar5</span> <span class="o">=</span> <span class="n">uVar5</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="n">uVar5</span> <span class="o">&lt;</span> <span class="n">uVar3</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">local_1c</span><span class="p">[</span><span class="o">*</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x51c</span><span class="p">)]</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
+    <span class="n">iVar2</span> <span class="o">=</span> <span class="n">FUN_0801b834</span><span class="p">(</span><span class="n">DAT_03002000</span><span class="p">,</span><span class="n">local_1c</span><span class="p">);</span>
+    <span class="n">iVar1</span> <span class="o">=</span> <span class="n">DAT_03002000</span><span class="p">;</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">uint</span> <span class="o">*</span><span class="p">)(</span><span class="n">DAT_03002000</span> <span class="o">+</span> <span class="mh">0x90</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0xf0U</span> <span class="o">-</span> <span class="n">iVar2</span> <span class="o">&gt;&gt;</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">+</span> <span class="mh">0x94</span><span class="p">)</span> <span class="o">=</span> <span class="mh">0x3f</span><span class="p">;</span>
+    <span class="n">iVar2</span> <span class="o">=</span> <span class="n">FUN_0800118c</span><span class="p">(</span><span class="n">DAT_03001fdc</span><span class="p">,</span><span class="mi">5</span><span class="p">);</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">byte</span> <span class="o">*</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">byte</span> <span class="o">*</span><span class="p">)(</span><span class="n">iVar1</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xf</span> <span class="o">|</span> <span class="p">(</span><span class="n">byte</span><span class="p">)(</span><span class="n">iVar2</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span><span class="p">);</span>
+    <span class="n">FUN_0801b764</span><span class="p">(</span><span class="n">DAT_03002000</span><span class="p">,</span><span class="n">local_1c</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kt">int</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x51c</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">uVar4</span> <span class="o">=</span> <span class="n">FUN_0801a6d4</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x18</span><span class="p">));</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span> <span class="o">=</span> <span class="n">uVar4</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">uStack4</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>If we take a look at this function, we can see that a <code class="language-plaintext highlighter-rouge">FUN_0801b764</code> is being called with the <code class="language-plaintext highlighter-rouge">@ - Accept &amp; - Backspace</code> string. Later on, we see that the same function is called with the variable containing our string of interest. If we investigate <code class="language-plaintext highlighter-rouge">FUN_0801b764</code> further, it copies the data from the second variable (the ASCII string) to the memory address of the first argument. At this point, we can’t say for sure - but this makes me think that this particular subroutine is likely for rendering the text on the screen so I am going to ignore it for now and move onto the next usage of our password character string which can be seen below:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+</pre><td class="rouge-code"><pre><span class="n">undefined8</span> <span class="nf">FUN_0801c454</span><span class="p">(</span><span class="kt">int</span> <span class="n">param_1</span><span class="p">)</span>
+
+<span class="p">{</span>
+  <span class="kt">int</span> <span class="n">iVar1</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">iVar2</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="kt">char</span> <span class="n">local_14</span> <span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+  <span class="n">undefined4</span> <span class="n">uStack4</span><span class="p">;</span>
+  
+  <span class="n">iVar2</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="n">uStack4</span> <span class="o">=</span> <span class="n">in_lr</span><span class="p">;</span>
+  <span class="n">FUN_080231f4</span><span class="p">(</span><span class="n">local_14</span><span class="p">,</span><span class="s">"CRDT5"</span><span class="p">,</span><span class="mi">6</span><span class="p">);</span>
+  <span class="n">iVar1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="k">do</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">local_14</span><span class="p">[</span><span class="n">iVar1</span><span class="p">]</span> <span class="o">!=</span> <span class="s">"BCDFGHJKLMNPQRSTVWXYZ0123456789-"</span><span class="p">[</span><span class="o">*</span><span class="p">(</span><span class="n">byte</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x520</span> <span class="o">+</span> <span class="n">iVar1</span><span class="p">)])</span> <span class="p">{</span>
+      <span class="n">iVar2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">iVar1</span> <span class="o">=</span> <span class="n">iVar1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span> <span class="k">while</span> <span class="p">((</span><span class="n">iVar1</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="n">iVar2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">));</span>
+  <span class="k">return</span> <span class="n">CONCAT44</span><span class="p">(</span><span class="n">uStack4</span><span class="p">,</span><span class="n">iVar2</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></table></code></div></div><p>So what is happening here? First we have <code class="language-plaintext highlighter-rouge">FUN_080231f4</code> which is essentially a memcpy operation:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+</pre><td class="rouge-code"><pre><span class="n">undefined4</span> <span class="o">*</span> <span class="nf">memcpy_1</span><span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span><span class="n">undefined4</span> <span class="o">*</span><span class="n">src</span><span class="p">,</span><span class="n">uint</span> <span class="n">count</span><span class="p">)</span>
+
+<span class="p">{</span>
+  <span class="n">undefined4</span> <span class="n">uVar1</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="o">*</span><span class="n">puVar2</span><span class="p">;</span>
+  <span class="n">undefined4</span> <span class="o">*</span><span class="n">puVar3</span><span class="p">;</span>
+  
+  <span class="n">puVar2</span> <span class="o">=</span> <span class="n">dest</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">((</span><span class="mh">0xf</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">((((</span><span class="n">uint</span><span class="p">)</span><span class="n">src</span> <span class="o">|</span> <span class="p">(</span><span class="n">uint</span><span class="p">)</span><span class="n">dest</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">))</span> <span class="p">{</span>
+    <span class="k">do</span> <span class="p">{</span>
+      <span class="o">*</span><span class="n">puVar2</span> <span class="o">=</span> <span class="o">*</span><span class="n">src</span><span class="p">;</span>
+      <span class="n">puVar2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+      <span class="n">puVar3</span> <span class="o">=</span> <span class="n">src</span> <span class="o">+</span> <span class="mi">3</span><span class="p">;</span>
+      <span class="n">puVar2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+      <span class="n">src</span> <span class="o">=</span> <span class="n">src</span> <span class="o">+</span> <span class="mi">4</span><span class="p">;</span>
+      <span class="n">puVar2</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">*</span><span class="n">puVar3</span><span class="p">;</span>
+      <span class="n">puVar2</span> <span class="o">=</span> <span class="n">puVar2</span> <span class="o">+</span> <span class="mi">4</span><span class="p">;</span>
+      <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">-</span> <span class="mh">0x10</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">while</span> <span class="p">(</span><span class="mh">0xf</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">);</span>
+    <span class="k">while</span> <span class="p">(</span><span class="mi">3</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">uVar1</span> <span class="o">=</span> <span class="o">*</span><span class="n">src</span><span class="p">;</span>
+      <span class="n">src</span> <span class="o">=</span> <span class="n">src</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="o">*</span><span class="n">puVar2</span> <span class="o">=</span> <span class="n">uVar1</span><span class="p">;</span>
+      <span class="n">puVar2</span> <span class="o">=</span> <span class="n">puVar2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+      <span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">4</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">count</span> <span class="o">=</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">count</span> <span class="o">!=</span> <span class="mh">0xffffffff</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="n">undefined</span> <span class="o">*</span><span class="p">)</span><span class="n">puVar2</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="n">undefined</span> <span class="o">*</span><span class="p">)</span><span class="n">src</span><span class="p">;</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)((</span><span class="kt">int</span><span class="p">)</span><span class="n">src</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="n">puVar2</span> <span class="o">=</span> <span class="p">(</span><span class="n">undefined4</span> <span class="o">*</span><span class="p">)((</span><span class="kt">int</span><span class="p">)</span><span class="n">puVar2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">dest</span><span class="p">;</span>
+<span class="p">}</span>
+
+</pre></table></code></div></div><p>So what this is doing is copying the string <code class="language-plaintext highlighter-rouge">CRDT5</code> to the memory location pointer to by <code class="language-plaintext highlighter-rouge">local_14</code>. Next we can see in the while loop, that this value is used in a comparison:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre><span class="k">if</span> <span class="p">(</span><span class="n">local_14</span><span class="p">[</span><span class="n">iVar1</span><span class="p">]</span> <span class="o">!=</span> <span class="s">"BCDFGHJKLMNPQRSTVWXYZ0123456789-"</span><span class="p">[</span><span class="o">*</span><span class="p">(</span><span class="n">byte</span> <span class="o">*</span><span class="p">)(</span><span class="n">param_1</span> <span class="o">+</span> <span class="mh">0x520</span> <span class="o">+</span> <span class="n">iVar1</span><span class="p">)])</span>
+</pre></table></code></div></div><p>So what is happening here? On each iteration, a character from <code class="language-plaintext highlighter-rouge">local_14</code> is compared with a value from our available characters in the <code class="language-plaintext highlighter-rouge">BCDFGHJKLMNPQRSTVWXYZ0123456789-</code> string. This behavior seems to match up with what we might expect a password checking function to do…but we know that <code class="language-plaintext highlighter-rouge">iVar1</code> is incremented by 1 with every iteration, does this mean that the passwords have to be made up of contiguous characters in the <code class="language-plaintext highlighter-rouge">BCDFGHJKLMNPQRSTVWXYZ0123456789-</code>? That would seem very silly, there is also no way that this would allow for the string <code class="language-plaintext highlighter-rouge">CRDT5</code> to pass this check! If you look again at this comparison, you notice that there is a variable <code class="language-plaintext highlighter-rouge">param_1</code> that is also being used as the index, which <code class="language-plaintext highlighter-rouge">iVar1</code> and <code class="language-plaintext highlighter-rouge">0x520</code> are added to - these values are then used as an INDEX into our available characters.</p><p>So what does this mean for us exactly? The <code class="language-plaintext highlighter-rouge">param_1</code> likely points to an array of offsets that represent which characters were typed in the password screen, for example, if we type the password <code class="language-plaintext highlighter-rouge">GHDRR</code> the array might contain <code class="language-plaintext highlighter-rouge">[0x4,0x5,0x2,0xd,0xd]</code>.</p><p>But let’s not get ahead of ourselves, let’s try to type in the password <code class="language-plaintext highlighter-rouge">CRDT5</code> and see what happens:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/rom-2.png" alt="rom2" /></p><p>Aha! We’ve got a credits scene!</p><p>Seems simple enough right? But what if we could find out a little more about where our password is being stored in memory? If we knew where <code class="language-plaintext highlighter-rouge">param_1</code> pointed to, we can calculate where our password is located in RAM and look for cross-references. Now that we have a function of interest, let’s break out the debugger!</p><h2 id="debugging-the-rom">Debugging the ROM</h2><p>If you’re following along at home, you might have noticed a new tool showed up in our Ghidra project manager, see the image below:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/debugger.png" alt="Debugger" /></p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/open-with-debugger.png" alt="Open Debugger" /></p><p>Notice the Bug icon - this is used to open the debugger! When you clock on the bug, the following window will appear:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/full-debugger.png" alt="Full Debugger" /></p><p>You’ll notice that there are a lot of additional tabs and windows compared to the normal analyzer view. For starters in the top left, we’ve got the debugger targets view, this is what we will use to establish a connection to our debugger or launch a new debugging session</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/debugger-targets.png" alt="Debugger Targets" /></p><p>Right below that there is an “Objects” window, this shows the active debugging “Objects” that are being debugged. From here you can pause, single step, etc.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/objects.png" alt="Objects" /></p><p>Under that, towards the bottom of the screen, we have the memory regions view, stack view, and standard console view.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/regions.png" alt="Regions" /></p><p>Next to that, we have a view for threads (if applicable to your application) and a Time window - for what we are doing (debugging a single-threaded ARM system) we won’t be using these views</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/threads.png" alt="Threads" /></p><p>Finally, on the right we have a few more tabs than we would normally see in a Ghidra analyzer session, we have Breakpoints, which displays breakpoints that you have set:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/breakpoints.png" alt="Breakpoints" /></p><p>We also have a Registers view that will update with register values when breakpoints are hit:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/registers.png" alt="Registers" /></p><p>And finally, we have a modules view - where various loaded modules will show up if necessary - again for this simple application we won’t be seeing anything here:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/modules.png" alt="Modules" /></p><h3 id="attaching-to-the-emulator">Attaching to the Emulator</h3><p>For this work, I’m using the <code class="language-plaintext highlighter-rouge">mGBA</code> emulator, mainly because it has the ability to present a remote GDB stub. We will be connecting to this with <code class="language-plaintext highlighter-rouge">gdb-multiarch</code>. To do this from the Debugger view in Ghidra we will do the following, int he debugger targets window - click the green plug (Connect) which will open the following window:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/connect.png" alt="Connect" /></p><p>There are multiple options here for remote debugging. For this post we will be using the <code class="language-plaintext highlighter-rouge">IN-VM GNU gdb local debugger</code></p><p>I have added gdb-multiarch to the gdb launch command path. After clicking connect a standard GDB prompt will appear:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/gdb-prompt.png" alt="GDB Prompt" /></p><p>Now we have to start the server, from within mGBA, load your ROM and select <code class="language-plaintext highlighter-rouge">Tools</code> -&gt; <code class="language-plaintext highlighter-rouge">Start GDB Server</code>, the following prompt will appear:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/gdb-server.png" alt="GDB Server" /></p><p>Click start and return to the Ghidra debugger window. Within the gdb prompt - run the following commands:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>set architecture arm
+set arm fallback-mode thumb
+set arm force-mode thumb
+target remote localhost:2345
+break *0x801c470
+c
+</pre></table></code></div></div><p>This is setting the appropriate architecture for gdb to use, connecting to our remote server, and finally setting a breakpoint at the function that we think is used to check if the credit screen should be played. Specifically at the segment comparing our provided character to the one pulled from the string of available characters. We will be focusing on this assembly snippet:</p><div class="language-c highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+</pre><td class="rouge-code"><pre>                             <span class="n">LAB_0801c470</span>                                    <span class="n">XREF</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">:</span>     <span class="mi">0801</span><span class="n">c48c</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>  
+        <span class="mi">0801</span><span class="n">c470</span> <span class="mi">69</span> <span class="mi">46</span>           <span class="n">mov</span>        <span class="n">r1</span><span class="p">,</span><span class="n">sp</span>
+        <span class="mi">0801</span><span class="n">c472</span> <span class="mi">88</span> <span class="mi">18</span>           <span class="n">add</span>        <span class="n">r0</span><span class="p">,</span><span class="n">r1</span><span class="p">,</span><span class="n">r2</span> 
+        <span class="mi">0801</span><span class="n">c474</span> <span class="n">a1</span> <span class="mi">18</span>           <span class="n">add</span>        <span class="n">r1</span><span class="p">,</span><span class="n">r4</span><span class="p">,</span><span class="n">r2</span> <span class="p">;</span> <span class="n">Update</span> <span class="n">the</span> <span class="n">pointer</span> <span class="n">to</span> <span class="n">the</span> <span class="n">password</span> <span class="n">we</span> <span class="n">entered</span> <span class="n">with</span> <span class="n">the</span> <span class="n">current</span> <span class="n">index</span>
+        <span class="mi">0801</span><span class="n">c476</span> <span class="mi">09</span> <span class="mi">78</span>           <span class="n">ldrb</span>       <span class="n">r1</span><span class="p">,[</span><span class="n">r1</span><span class="p">,</span><span class="err">#</span><span class="mh">0x0</span><span class="p">];</span> <span class="n">r1</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">provided</span> <span class="n">password</span> <span class="n">index</span> <span class="n">value</span><span class="p">,</span> <span class="k">for</span> <span class="n">example</span> <span class="s">"B"</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s">"C"</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span> <span class="n">etc</span>
+        <span class="mi">0801</span><span class="n">c478</span> <span class="n">c9</span> <span class="mi">18</span>           <span class="n">add</span>        <span class="n">r1</span><span class="p">,</span><span class="n">r1</span><span class="p">,</span><span class="n">r3</span><span class="p">;</span> <span class="n">r3</span> <span class="n">contains</span> <span class="n">the</span> <span class="n">pointer</span> <span class="n">to</span> <span class="n">the</span> <span class="n">string</span> <span class="n">of</span> <span class="n">available</span> <span class="n">characters</span><span class="p">,</span> <span class="n">we</span> <span class="n">are</span> <span class="n">adding</span> <span class="n">the</span> <span class="n">index</span> <span class="n">of</span> <span class="n">the</span> <span class="n">current</span> <span class="n">password</span> <span class="n">character</span> <span class="n">to</span> <span class="n">this</span> <span class="n">pointer</span><span class="p">.</span>
+        <span class="mi">0801</span><span class="n">c47a</span> <span class="mo">00</span> <span class="mi">78</span>           <span class="n">ldrb</span>       <span class="n">r0</span><span class="o">=&gt;</span><span class="n">local_14</span><span class="p">,[</span><span class="n">r0</span><span class="p">,</span><span class="err">#</span><span class="mh">0x0</span><span class="p">]</span> <span class="p">;</span> <span class="n">Load</span> <span class="n">r0</span> <span class="n">with</span> <span class="n">the</span> <span class="n">value</span> <span class="n">of</span> <span class="n">the</span> <span class="s">"CRDT5"</span> <span class="n">string</span> <span class="n">at</span> <span class="n">the</span> <span class="n">index</span> <span class="n">specified</span> <span class="n">by</span> <span class="n">r2</span> <span class="n">from</span> <span class="n">the</span> <span class="n">location</span> <span class="n">on</span> <span class="n">the</span> <span class="n">stack</span>
+        <span class="mi">0801</span><span class="n">c47c</span> <span class="mi">09</span> <span class="mi">78</span>           <span class="n">ldrb</span>       <span class="n">r1</span><span class="p">,[</span><span class="n">r1</span><span class="p">,</span><span class="err">#</span><span class="mh">0x0</span><span class="p">]</span><span class="o">=&gt;</span><span class="n">s_BCDFGHJKLMNPQRSTVWXYZ012345678</span>   <span class="o">=</span> <span class="s">"BCDFGHJKLMNPQRSTVWXYZ01234567 ; Load the character representation of the entered value we provided for the password</span><span class="err">
+</span><span class="s">        0801c47e 88 42           cmp        r0,r1 ; Compare the two!</span><span class="err">
+</span><span class="s">        0801c480 00 d0           beq        LAB_0801c484</span><span class="err">
+</span><span class="s">        0801c482 00 25           mov        r5,#0x0</span><span class="err">
+</span><span class="s">                             LAB_0801c484                                    XREF[1]:     0801c480(j)  </span><span class="err">
+</span><span class="s">        0801c484 01 32           add        r2,#0x1; Increment the index counter</span><span class="err">
+</span><span class="s">        0801c486 04 2a           cmp        r2,#0x4</span><span class="err">
+</span><span class="s">        0801c488 01 dc           bgt        LAB_0801c48e</span><span class="err">
+</span><span class="s">        0801c48a 00 2d           cmp        r5,#0x0</span><span class="err">
+</span><span class="s">        0801c48c f0 d1           bne        LAB_0801c470</span><span class="err">
+</span></pre></table></code></div></div><p>After entering these commands, let’s see if our breakpoint gets hit using Ghidra…</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/ghidra-dbg/breakpoint-hit.png" alt="Breakpoint Hit" /></p><p>Excellent - not only the the breakpoint hit but all of the registers have been updated in the resisters window. Now let’s investigate these assumptions that we’ve made about the password checking and see if they are correct. If we step through a few instructions until we hit <code class="language-plaintext highlighter-rouge">0801c474</code>. The assumption at this point is that we r1 will be pointing to an array of indexes representing the characters we entered. Let’s examine memory and find out:</p><p><strong>Note:</strong> If you are remotely debugging using <code class="language-plaintext highlighter-rouge">gdb-multiarch</code> and are finding that some breakpoints aren’t being hit - try using the <code class="language-plaintext highlighter-rouge">stepi</code> command instead of <code class="language-plaintext highlighter-rouge">c</code>. This is an issues that I’ve seen in mGBA before and does not have anything to do with Ghidra’s GDB server.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre><td class="rouge-code"><pre>(gdb)x/10x $r1
+0x2005998:  0x01  0x0d  0x02  0x0f  0x1a  0x00  0x00  0x00
+0x20059a0:  0x00  0x4f
+</pre></table></code></div></div><p>Aha! This is exactly what was expected, instead of storing the actual ascii characters that we enter as a password it stores their index value into a table of available characters:</p><div class="table-wrapper"><table><thead><tr><th>Index Val<th>Character Val<tbody><tr><td>0x1<td>“C”<tr><td>0x0d<td>“R”<tr><td>0x02<td>“D”<tr><td>0x0f<td>“T”<tr><td>0x1a<td>“5”</table></div><p>Just to test this theory, let’s see what happens if we enter <code class="language-plaintext highlighter-rouge">CGHDR</code> as the password and set the same breakpoints:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre>Breakpoint 3, 0x0801c476
+Can't determine the current process's PID: you must name one.
+(gdb)x/10x $r1
+0x2005998:  0x01  0x04  0x05  0x02  0x0d  0x00  0x00  0x00
+0x20059a0:  0x00  0x60
+</pre></table></code></div></div><div class="table-wrapper"><table><thead><tr><th>Index Val<th>Character Val<tbody><tr><td>0x1<td>“C”<tr><td>0x04<td>“G”<tr><td>0x05<td>“H”<tr><td>0x02<td>“D”<tr><td>0xD<td>“R”</table></div><p>Exactly as we expected - so now we have an idea as to how these passwords get stored, what they look like in memory and we can debug/set breakpoints from within Ghidra. I think that this makes for a good stopping point - for the next post, we will research some of these other password functions using Ghidra and the remote GDB debugging functionality that we set up today.</p><h2 id="conclusion">Conclusion</h2><p>With this post, we’ve taken a look at what tools are available to help with building Ghidra. We also reviewed some of announced debugging capabilities and using those were able to remotely debug a Game Boy Advance game. A lot of what we did today you could have also done using gdb-multiarch without having Ghidra in the mix - but I wanted to learn how some of this worked and share my findings along the way. As usual, if you have any questions or comments - please feel free to reach out to me on <a href="https://twitter.com/wrongbaud">Twitter</a>. If you’d like to learn more about Ghidra, or <a href="https://www.voidstarsec.com/courses">hardware hacking</a> in general check out some of my <a href="https://www.voidstarsec.com/free-courses-materials">free course materials</a>.</p><h3 id="extra-information--notes">Extra Information / Notes</h3><div class="table-wrapper"><table><thead><tr><th>Emulator<th>Debugger<th>BP Count<th>Reg Working<tbody><tr><td>mgba-qt<td>gdb-multiarch<td>3<td> <tr><td>mgba-qt<td>dkp-gdb<td>5<td> <tr><td>vba<td>dkp-gdb<td>1<td>Unknown packet errors<tr><td>vba<td>gdb-multiarch<td>0<td>Unknown packet errors<tr><td>gvba<td>gdb-multiarch<td>0<td>Unknown packet errors<tr><td>gvba<td>dkp-gdb<td>0<td>Unknown packet errors<tr><td>mgba<td>dkp-gdb<td>5<td> <tr><td>mgba<td>gdb-multiarch<td>5<td> </table></div><p>Takeaways here - gvba does not work with any sort of modern GDB. gdb-multiarch seems to miss breakpoints for some reason, and gdb from devkitarm does not respond to ghidra appropriately to provide registers.</p></div><div class="post-tail-wrapper text-muted"><div class="post-meta mb-3"> <i class="far fa-folder-open fa-fw mr-1"></i> <a href='/categories/ghidra/'>ghidra</a></div><div class="post-tags"> <i class="fa fa-tags fa-fw mr-1"></i> <a href="/tags/ghidra/" class="post-tag no-text-decoration" >ghidra</a> <a href="/tags/gba/" class="post-tag no-text-decoration" >gba</a></div><div class="post-tail-bottom d-flex justify-content-between align-items-center mt-3 pt-5 pb-2"><div class="license-wrapper"> This post is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> by the author.</div><div class="share-wrapper"> <span class="share-label text-muted mr-1">Share</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=A first look at Ghidra's Debugger - Game Boy Advance Edition - Wrongbaud's Blog&url=https://wrongbaud.github.io/posts/ghidra-debugger/" data-toggle="tooltip" data-placement="top" title="Twitter" target="_blank" rel="noopener" aria-label="Twitter"> <i class="fa-fw fab fa-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=A first look at Ghidra's Debugger - Game Boy Advance Edition - Wrongbaud's Blog&u=https://wrongbaud.github.io/posts/ghidra-debugger/" data-toggle="tooltip" data-placement="top" title="Facebook" target="_blank" rel="noopener" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://telegram.me/share?text=A first look at Ghidra's Debugger - Game Boy Advance Edition - Wrongbaud's Blog&url=https://wrongbaud.github.io/posts/ghidra-debugger/" data-toggle="tooltip" data-placement="top" title="Telegram" target="_blank" rel="noopener" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <i class="fa-fw fas fa-link small" onclick="copyLink()" data-toggle="tooltip" data-placement="top" title="Copy link"></i> </span></div></div></div></div></div><div id="panel-wrapper" class="col-xl-3 pl-2 text-muted topbar-down"><div class="access"><div id="access-lastmod" class="post"> <span>Recent Update</span><ul class="post-content pl-0 pb-1 ml-1 mt-2"><li><a href="/posts/kong-vs-ghidra/">Godzilla Vs. Kong Vs ... Ghidra? - Ghidra Scripting, PCode Emulation, and Password Cracking</a><li><a href="/posts/ghidra-debugger/">A first look at Ghidra's Debugger - Game Boy Advance Edition</a><li><a href="/posts/Holiday-Teardown/">BasicFUN Series Part 4: I2C Sniffing, EEPROM Extraction and Parallel Flash Extraction</a><li><a href="/posts/BasicFUN-rom-analysis/">BasicFUN Series Part 2: Reverse Engineering Firmware / Reflashing SPI Flash</a><li><a href="/posts/MK-Teardown/">BasicFUN Series Part 3: Dumping Parallel Flash via I2C I/O Expanders</a></ul></div><div id="access-tags"> <span>Trending Tags</span><div class="d-flex flex-wrap mt-3 mb-1 mr-3"> <a class="post-tag" href="/tags/hardware/">hardware</a> <a class="post-tag" href="/tags/ghidra/">ghidra</a> <a class="post-tag" href="/tags/spi/">spi</a> <a class="post-tag" href="/tags/tools/">tools</a> <a class="post-tag" href="/tags/gba/">gba</a> <a class="post-tag" href="/tags/i2c/">i2c</a> <a class="post-tag" href="/tags/nand/">nand</a> <a class="post-tag" href="/tags/nes/">nes</a> <a class="post-tag" href="/tags/firmware/">firmware</a> <a class="post-tag" href="/tags/jtag/">jtag</a></div></div></div><div id="toc-wrapper" class="pl-0 pr-4 mb-5"> <span class="pl-3 pt-2 mb-2">Contents</span><nav id="toc" data-toggle="toc"></nav></div></div></div><div class="row"><div class="col-12 col-lg-11 col-xl-8"><div id="post-extend-wrapper" class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><div id="related-posts" class="mt-5 mb-2 mb-sm-4"><h3 class="pt-2 mt-1 mb-4 ml-1" data-toc-skip>Further Reading</h3><div class="card-deck mb-4"><div class="card"> <a href="/posts/kong-vs-ghidra/"><div class="card-body"> <span class="timeago small" > Apr 23 <i class="unloaded">2021-04-23T08:06:31+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Godzilla Vs. Kong Vs ... Ghidra? - Ghidra Scripting, PCode Emulation, and Password Cracking</h3><div class="text-muted small"><p> Godzilla Vs. Kong Vs … Ghidra? - Ghidra Scripting, PCode Emulation, and Password Cracking on a GBA ROM Overview This month Godzilla Vs. Kong is being released. As a long-time Toho/kaiju fan, I th...</p></div></div></a></div><div class="card"> <a href="/posts/writing-a-ghidra-loader/"><div class="card-body"> <span class="timeago small" > Feb 21, 2020 <i class="unloaded">2020-02-21T08:22:10+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Writing a GHIDRA Loader: STM32 Edition.</h3><div class="text-muted small"><p> Background In my last post, we managed to dump the firmware off of an Xbox One controller by using the Single Wire Debug interface. Now that we have the firmware image as well as the target CPU de...</p></div></div></a></div><div class="card"> <a href="/posts/ghidra-training/"><div class="card-body"> <span class="timeago small" > Jul 30, 2020 <i class="unloaded">2020-07-30T08:06:31+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Introduction to Reverse Engineering with Ghidra: A Four Session Course</h3><div class="text-muted small"><p> Background / Catching Up Over the last few months, those of you who follow my ramblings here have probably noticed a serious lack of content (4 months!). When I started this project I wanted to tr...</p></div></div></a></div></div></div><div class="post-navigation d-flex justify-content-between"> <a href="/posts/ghidra-training/" class="btn btn-outline-primary"><p>Introduction to Reverse Engineering with Ghidra: A Four Session Course</p></a> <a href="/posts/kong-vs-ghidra/" class="btn btn-outline-primary"><p>Godzilla Vs. Kong Vs ... Ghidra? - Ghidra Scripting, PCode Emulation, and Password Cracking</p></a></div></div></div></div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js"></script> <script type="text/javascript"> const imgs = document.querySelectorAll('#post-wrapper img'); const observer = lozad(imgs); observer.observe(); </script><footer class="d-flex w-100 justify-content-center"><div class="d-flex justify-content-between align-items-center"><div class="footer-left"><p class="mb-0"> © 2021 <a href="https://twitter.com/wrongbaud">wrongbaud</a>. <span data-toggle="tooltip" data-placement="top" title="Except where otherwise noted, the blog posts on this site are licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) License by the author.">Some rights reserved.</span></p></div><div class="footer-right"><p class="mb-0"> Powered by <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a> with <a href="https://github.com/cotes2020/jekyll-theme-chirpy/" target="_blank" rel="noopener">Chirpy</a> theme.</p></div></div></footer></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-12 col-xl-11 post-content"><div id="search-hints"><h4 class="text-muted mb-4">Trending Tags</h4><a class="post-tag" href="/tags/hardware/">hardware</a> <a class="post-tag" href="/tags/ghidra/">ghidra</a> <a class="post-tag" href="/tags/spi/">spi</a> <a class="post-tag" href="/tags/tools/">tools</a> <a class="post-tag" href="/tags/gba/">gba</a> <a class="post-tag" href="/tags/i2c/">i2c</a> <a class="post-tag" href="/tags/nand/">nand</a> <a class="post-tag" href="/tags/nes/">nes</a> <a class="post-tag" href="/tags/firmware/">firmware</a> <a class="post-tag" href="/tags/jtag/">jtag</a></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><div id="mask"></div><a id="back-to-top" href="#" aria-label="back-to-top" class="btn btn-lg btn-box-shadow" role="button"> <i class="fas fa-angle-up"></i> </a> <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@1.7.3/dest/simple-jekyll-search.min.js"></script> <script> SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<div class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-lg-4 pr-lg-4 pl-xl-0 pr-xl-0"> <a href="https://wrongbaud.github.io{url}">{title}</a><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"><div class="mr-sm-4"><i class="far fa-folder fa-fw"></i>{categories}</div><div><i class="fa fa-tag fa-fw"></i>{tags}</div></div><p>{snippet}</p></div>', noResultsText: '<p class="mt-5">Oops! No result founds.</p>' }); </script> <script async src="https://www.googletagmanager.com/gtag/js?id="></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', ''); </script>

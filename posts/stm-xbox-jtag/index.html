@@ -1,0 +1,495 @@
+<!DOCTYPE html><html lang="en" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><meta name="theme" content="Chirpy v2.5.1"><meta name="generator" content="Jekyll v4.2.0" /><meta property="og:title" content="Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers" /><meta name="author" content="wrongbaud" /><meta property="og:locale" content="en_US" /><meta name="description" content="A blog focusing on hardware and software reverse engineering" /><meta property="og:description" content="A blog focusing on hardware and software reverse engineering" /><link rel="canonical" href="https://wrongbaud.github.io/posts/stm-xbox-jtag/" /><meta property="og:url" content="https://wrongbaud.github.io/posts/stm-xbox-jtag/" /><meta property="og:site_name" content="Wrongbaud’s Blog" /><meta property="og:image" content="https://wrongbaud.github.io/" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2020-01-30T08:06:31+08:00" /><meta name="twitter:card" content="summary_large_image" /><meta property="twitter:image" content="https://wrongbaud.github.io/" /><meta property="twitter:title" content="Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers" /><meta name="twitter:site" content="@wrongbaud" /><meta name="twitter:creator" content="@wrongbaud" /><meta name="google-site-verification" content="google_meta_tag_verification" /> <script type="application/ld+json"> {"description":"A blog focusing on hardware and software reverse engineering","@type":"BlogPosting","headline":"Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers","dateModified":"2020-01-30T08:06:31+08:00","url":"https://wrongbaud.github.io/posts/stm-xbox-jtag/","datePublished":"2020-01-30T08:06:31+08:00","image":"https://wrongbaud.github.io/","mainEntityOfPage":{"@type":"WebPage","@id":"https://wrongbaud.github.io/posts/stm-xbox-jtag/"},"author":{"@type":"Person","name":"wrongbaud"},"@context":"https://schema.org"}</script><title>Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers | Wrongbaud's Blog</title><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon.png"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon-precomposed.png"><link rel="apple-touch-icon" sizes="57x57" href="/assets/img/favicons/apple-icon-57x57.png"><link rel="apple-touch-icon" sizes="60x60" href="/assets/img/favicons/apple-icon-60x60.png"><link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicons/apple-icon-72x72.png"><link rel="apple-touch-icon" sizes="76x76" href="/assets/img/favicons/apple-icon-76x76.png"><link rel="apple-touch-icon" sizes="114x114" href="/assets/img/favicons/apple-icon-114x114.png"><link rel="apple-touch-icon" sizes="120x120" href="/assets/img/favicons/apple-icon-120x120.png"><link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicons/apple-icon-144x144.png"><link rel="apple-touch-icon" sizes="152x152" href="/assets/img/favicons/apple-icon-152x152.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-icon-180x180.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/img/favicons/android-icon-192x192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="/assets/img/favicons/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/manifest.json"><meta name='msapplication-config' content='/assets/img/favicons/browserconfig.xml'><meta name="msapplication-TileColor" content="#ffffff"><meta name="msapplication-TileImage" content="/assets/img/favicons/ms-icon-144x144.png"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://fonts.gstatic.com"><link rel="preconnect" href="https://www.google-analytics.com" crossorigin="use-credentials"><link rel="dns-prefetch" href="https://www.google-analytics.com"><link rel="preconnect" href="https://www.googletagmanager.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="preconnect" href="cdn.jsdelivr.net"><link rel="dns-prefetch" href="cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha256-LA89z+k9fjgMKQ/kq4OO2Mrf8VltYml/VES+Rg0fh20=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.11.2/css/all.min.css" integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ=" crossorigin="anonymous"><link rel="preload" as="style" href="/assets/css/post.css"><link rel="stylesheet" href="/assets/css/post.css"><link rel="preload" as="style" href="/assets/css/lib/bootstrap-toc.min.css"><link rel="stylesheet" href="/assets/css/lib/bootstrap-toc.min.css" /> <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script> <script async src="https://cdn.jsdelivr.net/combine/npm/popper.js@1.15.0,npm/bootstrap@4/dist/js/bootstrap.min.js"></script> <script async src="/assets/js/post.min.js"></script> <script defer src="/app.js"></script><body data-spy="scroll" data-target="#toc"><div id="sidebar" class="d-flex flex-column"><div id="nav-wrapper"><div id="profile-wrapper" class="d-flex flex-column"><div id="avatar" class="d-flex justify-content-center"> <a href="/" alt="avatar"> <img src="https://i2.wp.com/wasistdas.co.uk/Owlsploitation/wp-content/uploads/2011/05/bubo2.jpg" alt="avatar" onerror="this.style.display='none'"> </a></div><div class="profile-text mt-3"><div class="site-title"> <a href="/">Wrongbaud's Blog</a></div><div class="site-subtitle font-italic">Hardware / Software Reverse Engineering</div></div></div><ul class="nav flex-column"><li class="nav-item d-flex justify-content-center "> <a href="/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-home ml-xl-3 mr-xl-3 unloaded"></i> <span>HOME</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/categories/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-stream ml-xl-3 mr-xl-3 unloaded"></i> <span>CATEGORIES</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/tags/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-tags ml-xl-3 mr-xl-3 unloaded"></i> <span>TAGS</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/archives/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-archive ml-xl-3 mr-xl-3 unloaded"></i> <span>ARCHIVES</span> </a><li class="nav-item d-flex justify-content-center "> <a href="/tabs/about/" class="nav-link d-flex justify-content-center align-items-center w-100"> <i class="fa-fw fas fa-info ml-xl-3 mr-xl-3 unloaded"></i> <span>ABOUT</span> </a></ul></div><div class="sidebar-bottom d-flex flex-wrap justify-content-around mt-4"> <span id="mode-toggle-wrapper"> <i class="mode-toggle fas fa-sun" dark-mode-invisible></i> <i class="mode-toggle fas fa-moon" light-mode-invisible></i> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return "mode"; } static get DARK_MODE() { return "dark"; } static get LIGHT_MODE() { return "light"; } constructor() { if (this.mode != null) { if (this.mode == ModeToggle.DARK_MODE) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } var self = this; /* always follow the system prefers */ this.sysDarkPrefers.addListener(function() { if (self.mode != null) { if (self.mode == ModeToggle.DARK_MODE) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } }); } /* constructor() */ setDark() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { $('html').removeAttr(ModeToggle.MODE_KEY); sessionStorage.removeItem(ModeToggle.MODE_KEY); } get sysDarkPrefers() { return window.matchMedia("(prefers-color-scheme: dark)"); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode == ModeToggle.DARK_MODE; } get isLightMode() { return this.mode == ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } } /* flipMode() */ } /* ModeToggle */ let toggle = new ModeToggle(); $(".mode-toggle").click(function() { toggle.flipMode(); }); </script> </span> <span class="icon-border"></span> <a href="https://github.com/wrongbaud" aria-label="github" target="_blank" rel="noopener"> <i class="fab fa-github-alt"></i> </a> <a href="https://twitter.com/wrongbaud" aria-label="twitter" target="_blank" rel="noopener"> <i class="fab fa-twitter"></i> </a> <a href=" javascript:location.href = 'mailto:' + ['wrongbaud','gmail.com'].join('@')" aria-label="email" > <i class="fas fa-envelope"></i> </a> <a href="/feed.xml" aria-label="rss" > <i class="fas fa-rss"></i> </a></div></div><div id="topbar-wrapper" class="row justify-content-center topbar-down"><div id="topbar" class="col-11 d-flex h-100 align-items-center justify-content-between"> <span id="breadcrumb"> <span> <a href="/"> Posts </a> </span> <span>Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers</span> </span> <i id="sidebar-trigger" class="fas fa-bars fa-fw"></i><div id="topbar-title"> Post</div><i id="search-trigger" class="fas fa-search fa-fw"></i> <span id="search-wrapper" class="align-items-center"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" placeholder="Search..."> <i class="fa fa-times-circle fa-fw" id="search-cleaner"></i> </span> <span id="search-cancel" >Cancel</span></div></div><div id="main-wrapper"><div id="main"><div class="row"><div id="post-wrapper" class="col-12 col-lg-11 col-xl-8"><div class="post pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><h1 data-toc-skip>Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers</h1><div class="post-meta text-muted d-flex flex-column"><div> Posted <span class="timeago " data-toggle="tooltip" data-placement="bottom" title="Thu, Jan 30, 2020, 8:06 AM +0800" > Jan 30, 2020 <i class="unloaded">2020-01-30T08:06:31+08:00</i> </span> by <span class="author"> wrongbaud </span></div><div> Updated <span class="timeago lastmod" data-toggle="tooltip" data-placement="bottom" title="Mon, Nov 23, 2020, 7:40 AM -0500" > Nov 23, 2020 <i class="unloaded">2020-11-23T20:40:52+08:00</i> </span></div></div><div class="post-content"> <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="" class="post-preview-img"><h2 id="background">Background</h2><p>I was looking around my apartment for potential targets for my next post and was pleasantly surprised to find the following XBox One controller still in the packaging:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/6362/6362974_sd.jpg;maxHeight=640;maxWidth=550" alt="controller_pic" /></p><p>I don’t really play my XBox that much so I thought it might be interesting to tear down this controller and see what kind of information we could extract from it.</p><h2 id="goals">Goals</h2><p>When assessing an embedded platform there are a number of things you can do or try to accomplish, with this post I want to demonstrate/test the following:</p><ol><li>Can the firmware be extracted from the target?<li>Can the target be debugged or instrumented in such a way that allows us to learn more about it’s internal operations?<li>Can the firmware be modified or changed, either through software exploitation or hardware modifications?</ol><p>The first step to answering some of these questions will be a hardware teardown.</p><h2 id="hardware-teardown">Hardware Teardown</h2><p>Opening up the case reveals the following PCB:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/xbox-controller/controller_board.jpg" alt="controller_pcb" /></p><p>Note that there really isn’t too much to see here, as the main chip is covered in epoxy. Luckily for us a lot of the test pads are labeled, but the labeled ones seem to be test points for various button presses, so there’s nothing exciting there.</p><p>There is an IC labeled AK4961 towards the bottom of the board, but this is an audio codec chip. The datasheet can be found <a href="https://www.digikey.com/product-detail/en/akm-semiconductor-inc/AK4951EN/974-1064-1-ND/5180415">here</a>. This chip is a low power 24-bit stereo CODEC with a microphone, headphone and speaker amplifiers.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/xbox-controller/audio_chip.jpg" alt="Audio IC" /></p><p>If we look to the right of this however there is a small grouping of pads with <em>some</em> silk screen labelling:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/xbox-controller/debug_pads.jpg" alt="debug_pads" /></p><p>So we see <code class="language-plaintext highlighter-rouge">3V3</code>,<code class="language-plaintext highlighter-rouge">A13</code>,<code class="language-plaintext highlighter-rouge">A14</code>,<code class="language-plaintext highlighter-rouge">RES</code> labeled in the silkscreen. This is worth taking a look at, and if you’ve read my previous post about the router teardown and discovering UARTs you may already have some ideas on how to proceed here. We’ll start by measuring the voltage of each pin with a multimeter:</p><div class="table-wrapper"><table><thead><tr><th>Pin<th>Value<tbody><tr><td>0/NA<td>0 (GND)<tr><td>RES<td>3.3V<tr><td>A14<td>0.1V<tr><td>A13<td>3.3V<tr><td>3V3<td>3.3V</table></div><p>There was no fluctuation or modulation on RES, A14 or A13, so these must be for something else, but what? Given that one of the labels is <code class="language-plaintext highlighter-rouge">RES</code> (which likely stands for system reset) there is a good chance that there are JTAG or SWD headers.</p><p>We can test if the <code class="language-plaintext highlighter-rouge">RES</code> pin actually resets the target by pulling it low with a 10k resistor (remember we’re reversing things here and don’t want to accidentally short something!). If you are not familiar with these types of headers or how a system reset pin typically works - they are often <em>active low</em> meaning that they idle at a high value and have to be pulled low to be activated. So if we monitor the output of <code class="language-plaintext highlighter-rouge">dmesg -w</code> and toggle this line low with a 10k resistor, what do we see?</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+</pre><td class="rouge-code"><pre>[ 2108.588884] usb 1-6.4: new full-speed USB device number 10 using xhci_hcd
+[ 2108.691108] usb 1-6.4: New USB device found, idVendor=0e6f, idProduct=02a2, bcdDevice= 1.0f
+[ 2108.691113] usb 1-6.4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[ 2108.691116] usb 1-6.4: Product: PDP Wired Controller for Xbox One - Crimson Red
+[ 2108.691119] usb 1-6.4: Manufacturer: Performance Designed Products
+[ 2108.691122] usb 1-6.4: SerialNumber: 0000AE38D7650465
+[ 2108.698675] input: Generic X-Box pad as /devices/pci0000:00/0000:00:14.0/usb1/1-6/1-6.4/1-6.4:1.0/input/input25
+[ 2131.403862] usb 1-6.4: USB disconnect, device number 10
+[ 2133.420350] usb 1-6.4: new full-speed USB device number 11 using xhci_hcd
+[ 2133.522469] usb 1-6.4: New USB device found, idVendor=0e6f, idProduct=02a2, bcdDevice= 1.0f
+[ 2133.522474] usb 1-6.4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[ 2133.522478] usb 1-6.4: Product: PDP Wired Controller for Xbox One - Crimson Red
+[ 2133.522480] usb 1-6.4: Manufacturer: Performance Designed Products
+[ 2133.522483] usb 1-6.4: SerialNumber: 0000AE38D7650465
+[ 2133.530103] input: Generic X-Box pad as /devices/pci0000:00/0000:00:14.0/usb1/1-6/1-6.4/1-6.4:1.0/input/input26
+</pre></table></code></div></div><p>Ah excellent, doing this caused the controller to reset, that’s one pin down, 2 more to go.</p><p>When looking at debug headers like this, a common assumption is that it’s for JTAG or some other form of hardware level debugging. However, the JTAG spec requires that there be at least 4 pins, <code class="language-plaintext highlighter-rouge">TDO</code>,<code class="language-plaintext highlighter-rouge">TDI</code>,<code class="language-plaintext highlighter-rouge">TMS</code> and <code class="language-plaintext highlighter-rouge">TCK</code>. We only have two on our target, so there is a good chance that this is a Single Wire Debug (SWD) port.</p><h2 id="understanding-swd">Understanding SWD</h2><p>SWD is a common debugging interface that is used for ARM Cortex targets. As the name implies, SWD only requires one data line and one clock line, but how can we determine which one is which? Before we go down that route, we should understand a little more about how SWD works and what tools can be used to interface with it.</p><p>First off - SWD interfaces with something called a “Debug Access Port” (DAP). The DAP brokers access to various “Access Ports” (APs) which provide functionality including from typical hardware debugging, legacy JTAG cores, and other high performance memory busses. The image below pulled from <a href="https://stm32duinoforum.com/forum/files/pdf/Serial_Wire_Debug.pdf">this document</a> provides a visual representation of how the DAP and APs are architected.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/xbox-controller/swd_arch.png" alt="swd_arch.png" /></p><p>Each of these APs consist of 64, 32 bit registers, with one register that is used to identify the type of AP. The function and features of the AP determine how these registers are accessed and utilized. You can find all of the information regarding these transactions for some of the standard APs <a href="https://static.docs.arm.com/ihi0031/c/IHI0031C_debug_interface_as.pdf">here</a>. The ARM interface specification defines two APs by default and they are the JTAG-AP, and the MEM-AP. The MEM-AP also includes a discovery mechanism for components that are attached to it.</p><h3 id="swd-protocol">SWD Protocol</h3><p>As we mentioned before - SWD was developed as a pseudo-replacement for JTAG. With SWD the pin count was reduced from 4 to 2 and it provides a lot of the same functionality of JTAG. One downside to SWD however is that devices can not be daisy chained together, which JTAG allowed for. The two pins that are used in SWD are below:</p><div class="table-wrapper"><table><thead><tr><th>Pin<th>Purpose<tbody><tr><td><code class="language-plaintext highlighter-rouge">SWCLK</code><td>Clock signal to CPU, determining when data is sampled and sent on <code class="language-plaintext highlighter-rouge">SWDIO</code><tr><td><code class="language-plaintext highlighter-rouge">SWDIO</code><td>Bi directional data pin used to transfer data to and from the target CPU</table></div><p>SWD utilizes a packet based protocol to read and write to registers in the DAP/AP and they consist of the following phases:</p><ol><li>Host to target packet request<li>Bus turnaround<li>Target to host acknowledgment response<li>Data transfer phase</ol><p>The packet structure can be seen in the image below, I’ve broken out the various fields in the table as well.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/xbox-controller/swd-traffic.png" alt="swd_arch.png" /></p><div class="table-wrapper"><table><thead><tr><th>Field<th>Usage<tbody><tr><td>Start<td>Start bit, value 1<tr><td>APnDP<td>This bit indicates whether the Debug Port access register or the Access Port access register is to be used.<tr><td>RnW<td>Read / Write bit<tr><td>A[2:3]<td>Address field for the AP or DP address<tr><td>Parity<td>Parity bit for all packet requests<tr><td>Stop<td>Stop bit (always 0)<tr><td>Park<td>Line to be driven high during the turnaround period<tr><td>ACK[0:2]<td>Ack bits from the target back to the host<tr><td>DATA[0:32]<td>The actual data frame, which will be either read from the target or written to the target depending on the RnW bit<tr><td>Parity<td>Final parity bit for the data frame</table></div><p>After the park bit (from the host to the target) there is a turnaround period, which basically means that the target will now respond on the same line.</p><p>From an extremely high level, the SWD port uses these packets to interface with the DAP, which in turn allows access to the MEM-AP which provides access to debugging as well as memory read / write capabilities. For the purposes of this post we will use a tool called OpenOCD to perform these transactions. We will review how to build and use OpenOCD next.</p><h2 id="openocd">OpenOCD</h2><p>Install the dependencies:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre><td class="rouge-code"><pre>sudo apt-get install build-essential libusb-1.0-0-dev automake libtool gdb-multiarch
+</pre></table></code></div></div><p>Clone the repository, configure, and build!</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre><td class="rouge-code"><pre>wrongbaud@115201:~/blog$ git clone https://git.code.sf.net/p/openocd/code openocd-code
+cd openocd-code
+./bootstrap
+./configure
+make -j$(nproc)
+</pre></table></code></div></div><p>With OpenOCD built, we can attempt to debug this controller over SWD. In order to do this we need to tell OpenOCD at least two things:</p><ul><li>What are we using to debug <em>with</em> (which debug adapter are we using)<li>What target are we debugging</ul><p>To do the debugging, we will use the FT2232H which we used in a <a href="https://wrongbaud.github.io/posts/Holiday-Teardown/">previous post</a> to dump a SPI flash. With this interface we can use OpenOCD to query information about the target via SWD, which is important because at this stage in the reversing process we don’t even know what the target CPU is!</p><p>Below is a table for determining what pins on the FT2232H need to be connected to a SWD target:</p><div class="table-wrapper"><table><thead><tr><th>FT2232H Pin<th>SWD Target<tbody><tr><td><code class="language-plaintext highlighter-rouge">AD1</code><td>SWD<tr><td><code class="language-plaintext highlighter-rouge">AD0</code><td>SCLK<tr><td><code class="language-plaintext highlighter-rouge">AD4</code><td>SRST (System Reset)</table></div><p>Lastly, in order to use the FT2232H as a SWD adapter, you have to put a 470 OHM resistor between <code class="language-plaintext highlighter-rouge">AD1</code>/<code class="language-plaintext highlighter-rouge">AD2</code> on the FT2232H.</p><p>Once we have the pins on the FT2232H hooked up to the target we can use the following script to query the <code class="language-plaintext highlighter-rouge">DPIDR</code> register on the DAP controller:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+</pre><td class="rouge-code"><pre># We are using an FT2232H so specify this here
+interface ftdi
+# Provide the VID/PID of the FT2232H
+ftdi_vid_pid 0x0403 0x6010
+# There are two channels, this is the default
+ftdi_channel 0
+# To the best of my knowledge, this is used to properly set and confiture the state of the lines we are using
+ftdi_layout_init 0x0018 0x05fb
+# Enable SWD for the lines that we are using, and the port
+ftdi_layout_signal SWD_EN -data 0
+# This is used to specify the sRST pin, in our case we're using 
+ftdi_layout_signal nSRST -data 0x0010
+# Here we are selecting SWD as opposed to another transport layer such as JTAG
+transport select swd
+# Set the speed of the adapter, this will vary based on what your hardware supports
+adapter_khz 100
+# Create a new dap, (TAP for JTAG terms) with name chip and role CPU, -enable let's OpenOCD to know to add it to the scan
+swd newdap chip cpu -enable
+# Create the DAP instance, this must be explicitly created according to the OpenOCD docs
+dap create chip.dap -chain-position chip.cpu
+</pre></table></code></div></div><p>We can run this script with openocd as shown, with the following output (note that the first time it was run, there was no output, after swapping the <code class="language-plaintext highlighter-rouge">SWD</code>/<code class="language-plaintext highlighter-rouge">SCLK</code> lines the following output was printed out). See the table below for the connections to be made to the controller from the FT2232</p><div class="table-wrapper"><table><thead><tr><th>FT2232H Pin<th>Controller<tbody><tr><td><code class="language-plaintext highlighter-rouge">AD1</code><td>SWD (<code class="language-plaintext highlighter-rouge">A13</code>)<tr><td><code class="language-plaintext highlighter-rouge">AD0</code><td>SCLK (<code class="language-plaintext highlighter-rouge">A14</code>)<tr><td><code class="language-plaintext highlighter-rouge">AD4</code><td>SRST (<code class="language-plaintext highlighter-rouge">RES</code>)</table></div><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/stm32-xbox$ sudo openocd -f openocd.cfg 
+Open On-Chip Debugger 0.10.0+dev-01040-ge7e681ac (2020-01-27-18:55)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+Info : FTDI SWD mode enabled
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Info : clock speed 100 kHz
+Info : SWD DPIDR 0x2ba01477
+Warn : gdb services need one or more targets defined
+</pre></table></code></div></div><p>Excellent! We’ve found a chip ID of <code class="language-plaintext highlighter-rouge">0x2ba01477</code> if we google this ID we see lots of hits for various Cortex M / STM32 devices - which would make sense because this processor series supports SWD. Now that we can communicate with the DAP, we should see if we can determine the exact processor that is being used - if this is one that has a configuration file written for it we will be able to dump flash banks and get other auxiliary information from the target processor. With this additional information we can tell OpenOCD to create a target, using the chip with the Cortex M definition, this will hopefully allow us to take more advantage of the DAP and get access to some of the more generic features while we try to figure out exactly which CPU we’re targeting:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre># Set up the GDB target for the CPU, cortex_m is the CPU type, 
+target create chip.cpu cortex_m -dap chip.dap
+# init reads out all of the necessary information from the DAP, kicks off the debugging session, etc
+init
+# Read out the information from the DAP, including the ROM table
+dap info
+</pre></table></code></div></div><p>When we run openocd with this config file we see the following results:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/stm32-xbox$ sudo openocd -f openocd.cfg 
+Open On-Chip Debugger 0.10.0+dev-01040-ge7e681ac (2020-01-27-18:55)
+Licensed under GNU GPL v2
+For bug reports, read
+        http://openocd.org/doc/doxygen/bugs.html
+Info : FTDI SWD mode enabled
+Info : clock speed 100 kHz
+Info : SWD DPIDR 0x2ba01477
+Info : chip.cpu: hardware has 6 breakpoints, 4 watchpoints
+Info : chip.cpu: external reset detected
+Info : Listening on port 3333 for gdb connections
+AP ID register 0x24770011
+        Type is MEM-AP AHB3
+MEM-AP BASE 0xe00ff003
+        Valid ROM table present
+                Component base address 0xe00ff000
+                Peripheral ID 0x00000a0411
+                Designer is 0x0a0, STMicroelectronics
+                Part is 0x411, Unrecognized 
+                Component class is 0x1, ROM table
+                MEMTYPE system memory present on bus
+        ROMTABLE[0x0] = 0xfff0f003
+                Component base address 0xe000e000
+                Peripheral ID 0x04000bb00c
+                Designer is 0x4bb, ARM Ltd.
+                Part is 0xc, Cortex-M4 SCS (System Control Space)
+                Component class is 0xe, Generic IP component
+        ROMTABLE[0x4] = 0xfff02003
+                Component base address 0xe0001000
+                Peripheral ID 0x04003bb002
+                Designer is 0x4bb, ARM Ltd.
+                Part is 0x2, Cortex-M3 DWT (Data Watchpoint and Trace)
+                Component class is 0xe, Generic IP component
+        ROMTABLE[0x8] = 0xfff03003
+                Component base address 0xe0002000
+                Peripheral ID 0x04002bb003
+                Designer is 0x4bb, ARM Ltd.
+                Part is 0x3, Cortex-M3 FPB (Flash Patch and Breakpoint)
+                Component class is 0xe, Generic IP component
+        ROMTABLE[0xc] = 0xfff01003
+                Component base address 0xe0000000
+                Peripheral ID 0x04003bb001
+                Designer is 0x4bb, ARM Ltd.
+                Part is 0x1, Cortex-M3 ITM (Instrumentation Trace Module)
+                Component class is 0xe, Generic IP component
+        ROMTABLE[0x10] = 0xfff41003
+                Component base address 0xe0040000
+                Peripheral ID 0x04000bb9a1
+                Designer is 0x4bb, ARM Ltd.
+                Part is 0x9a1, Cortex-M4 TPIU (Trace Port Interface Unit)
+                Component class is 0x9, CoreSight component
+                Type is 0x11, Trace Sink, Port
+        ROMTABLE[0x14] = 0xfff42003
+                Component base address 0xe0041000
+                Peripheral ID 0x04000bb925
+                Designer is 0x4bb, ARM Ltd.
+                Part is 0x925, Cortex-M4 ETM (Embedded Trace)
+                Component class is 0x9, CoreSight component
+                Type is 0x13, Trace Source, Processor
+        ROMTABLE[0x18] = 0x0
+                End of ROM table
+
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+</pre></table></code></div></div><p>With these new changes, we can not only interact with the DAP and MEM-AP, but we can also debug the target via GDB. We can also determine that the target CPU is an STM32F2X series because of the 0x411 part number in the MEM-AP entry:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre>MEM-AP BASE 0xe00ff003
+	Valid ROM table present
+		Component base address 0xe00ff000
+		Peripheral ID 0x00000a0411
+		Designer is 0x0a0, STMicroelectronics
+		Part is 0x411, Unrecognized 
+		Component class is 0x1, ROM table
+
+</pre></table></code></div></div><p>However - just for fun, what if we didn’t have access to the DAP and wanted to figure out what our target was via memory reads and writes? To figure this out, there are some <a href="https://github.com/antongus/stm32tpl/blob/master/stm32.h">memory regions that are common in STM32 CPUs</a> that are used to store ID and flash information. With this information we can modify the OpenOCD script to read these regions and look for relevant ID information! The table below has the necessary offsets for the ID information:</p><div class="table-wrapper"><table><thead><tr><th>STM Series<th>Offset<tbody><tr><td>Generic Device ID Reg<td>0xE0042000<tr><td>STM32F0/STM32F3<td>0x1FFFF7AC<tr><td>STM32F1<td>0x1FFFF7E8<tr><td>STM32F2/STM32F4<td>0x1FFF7A10<tr><td>STM32F7<td>0x1FF0F420<tr><td>STM32L0<td>0x1FF80050<tr><td>STM32L0/ L1 Cat.1,Cat.2<td>0x1FF80050<tr><td>L1 Cat.3,Cat.4,Cat.5,Cat.6<td>0x1FF800D0</table></div><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>mdw 0x1FFFF7AC 3
+mdw 0x1FFFF7E8 3
+mdw 0x1FFF7A10 3
+mdw 0x1FF0F420 3
+mdw 0x1FF80050 3
+mdw 0x1FF800D0 3
+</pre></table></code></div></div><p>When we run the updated OpenOCd script and the above commands we see the following results:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+</pre><td class="rouge-code"><pre>&gt; mdw 0x1FFFF7AC 3
+0x1ffff7ac: ffffffff ffffffff ffffffff 
+
+&gt; mdw 0x1FFFF7E8 3
+0x1ffff7e8: ffffffff ffffffff ffffffff 
+
+&gt; mdw 0x1FFF7A10 3
+0x1fff7a10: 006c0028 31385114 30373639 
+
+&gt; mdw 0x1FF0F420 3
+SWD DPIDR 0x2ba01477
+Failed to read memory at 0x1ff0f424
+
+&gt; mdw 0x1FF80050 3
+SWD DPIDR 0x2ba01477
+Failed to read memory at 0x1ff80054
+
+&gt; mdw 0x1FF800D0 3
+SWD DPIDR 0x2ba01477
+Failed to read memory at 0x1ff800d4
+
+&gt; 
+</pre></table></code></div></div><p>We can get the flash size with the following command, using the flash address from the datasheet for this chip, or the <a href="https://github.com/antongus/stm32tpl/blob/master/stm32.h">repository</a> linked above:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre><td class="rouge-code"><pre>&gt; mdh 0x1FFF7A22
+0x1fff7a22: 0100 
+</pre></table></code></div></div><p>Now that we know the exact target, we can remove the target <code class="language-plaintext highlighter-rouge">swd</code>, <code class="language-plaintext highlighter-rouge">dap</code> and <code class="language-plaintext highlighter-rouge">target</code> lines from our config file, and replace them with a call to <code class="language-plaintext highlighter-rouge">-f /usr/local/share/openocd/scripts/target/stm32f2x.cfg</code> from the command line. This will properly enumerate the target CPU. We also know now that this STM32F2 series chip has 0x100 1kb pages of flash memory.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/stm32-xbox$ sudo openocd -f openocd.cfg -f /usr/local/share/openocd/scripts/target/stm32f2x.cfg 
+[sudo] password for wrongbaud: 
+Open On-Chip Debugger 0.10.0+dev-01040-ge7e681ac (2020-01-27-18:55)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+Info : FTDI SWD mode enabled
+adapter speed: 100 kHz
+
+Info : Listening on port 6666 for tcl connections
+Info : Listening on port 4444 for telnet connections
+Info : clock speed 1000 kHz
+Info : SWD DPIDR 0x2ba01477
+Info : stm32f2x.cpu: hardware has 6 breakpoints, 4 watchpoints
+Info : Listening on port 3333 for gdb connections
+</pre></table></code></div></div><p>Now that this is working, we can dump the internal flash with the following commands:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre>&gt; flash list
+{name stm32f2x base 0 size 0 bus_width 0 chip_width 0} {name stm32f2x base 536836096 size 0 bus_width 0 chip_width 0}
+
+&gt; flash read_bank 0 bank0.bin
+device id = 0x00016423
+flash size = 256 kbytes
+wrote 262144 bytes to file bank0.bin from flash bank 0 at offset 0x00000000 in 3.690861s (69.361 KiB/s)
+
+&gt; flash read_bank 1 bank1.bin
+flash size = 512 bytes
+wrote 512 bytes to file bank1.bin from flash bank 1 at offset 0x00000000 in 0.007852s (63.678 KiB/s)
+</pre></table></code></div></div><p>We can also debug the controller with gdb using the commands below:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/stm32-xbox$ gdb-multiarch 
+GNU gdb (Ubuntu 8.1-0ubuntu3.2) 8.1.0.20180409-git
+Copyright (C) 2018 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+&lt;http://www.gnu.org/software/gdb/bugs/&gt;.
+Find the GDB manual and other documentation resources online at:
+&lt;http://www.gnu.org/software/gdb/documentation/&gt;.
+For help, type "help".
+Type "apropos word" to search for commands related to "word".
+(gdb) set architecture arm
+The target architecture is assumed to be arm
+(gdb) target remote localhost:3333
+Remote debugging using localhost:3333
+warning: No executable has been specified and target does not support
+determining executable automatically.  Try using the "file" command.
+0x0800307e in ?? ()
+(gdb) x/10x 0x1FFF7A10
+0x1fff7a10:	0x006c0028	0x31385114	0x30373639	0xc000fcc0
+0x1fff7a20:	0x0100c000	0x67ff47d2	0x05dcf000	0x04a803b3
+0x1fff7a30:	0x451744b1	0xffffffff
+(gdb) 
+</pre></table></code></div></div><p>So at this point, we have the flash dumped, we can debug and single step through the firmware, but … can we reflash the MCU?</p><p>If we can locate the USB descriptor strings in the firmware image and patch them, we can use that as a visible method to determine if we can patch the firmware. Let’s load up the firmware in GHIDRA and see if we can find them, the firmware image can be loaded at address <code class="language-plaintext highlighter-rouge">0x8000000</code>. We know that the firmware is loaded at <code class="language-plaintext highlighter-rouge">0x8000000</code> based on the datasheet, however if we did not have the datasheet this could be determined from OpenOCD by issuing the <code class="language-plaintext highlighter-rouge">reset halt</code> command and single stepping through the first instruction. Luckily, this firmware image is rather small and Ghidra makes quick work of it. The strings that were seen in the <code class="language-plaintext highlighter-rouge">dmesg</code> output can be seen in the screenshot below:</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7 " data-src="https://wrongbaud.github.io/assets/img/xbox-controller/xrefs.png" alt="xrefs" /></p><p>Let’s do a simple patch with the product string, changing it to “Testing Firmware Patches”. The flash can be overwritten with the following commands in the OpenOCD telnet console:</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+</pre><td class="rouge-code"><pre>wrongbaud@wubuntu:~/blog/stm32-xbox$ telnet localhost 4444
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+Open On-Chip Debugger
+&gt; flash read 0 bank0-orig.bin
+&gt; flash read_bank 1 bank1-orig.bin 
+flash size = 512 bytes
+wrote 512 bytes to file bank1-orig.bin from flash bank 1 at offset 0x00000000 in 0.007867s (63.557 KiB/s)
+&gt; stm32f2x unlock 0
+Target not halted
+stm32f2x failed to unlock device
+&gt; halt
+target halted due to debug-request, current mode: Handler External Interrupt(67)
+xPSR: 0x61000053 pc: 0x0800839c msp: 0x2000ff48
+&gt; stm32f2x unlock 0
+stm32f2x unlocked.
+INFO: a reset or power cycle is required for the new settings to take effect.
+&gt; reset halt       
+target halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x080002a4 msp: 0x20010000
+&gt; stm32f2x mass_erase 0
+stm32x mass erase complete
+&gt; flash write_bank 0 bank0-patch.bin
+wrote 262144 bytes from file bank0-patch.bin to flash bank 0 at offset 0x00000000 in 3.744948s (68.359 KiB/s)
+&gt; reset 
+&gt; 
+</pre></table></code></div></div><p>There are a few steps here that might not make sense, so I wanted to explain them:</p><ol><li>Always, always always take a backup of <em>any</em> flash image before you attempt to reflash.<li>See bullet 1<li>The STM32 flash controller has a lock bit which keeps prevents unwanted writes. This is set in the “Option bytes” of the STM32<ul><li>Luckily for us we were able to unlock the flash, which can sometimes not be an option!</ul><li>For the internal flash on the STM32, we need to perform an erase operation before we write to it<ul><li>I should add here, that this is never something you want to do if your target is expensive or important unless you’re 100% certain you can return it to it’s original state</ul><li>We write the patched firmware image, and restart the CPU, prompting the following to show up in <code class="language-plaintext highlighter-rouge">dmesg</code></ol><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre><td class="rouge-code"><pre>[54691.886194] usb 1-6.4: new full-speed USB device number 14 using xhci_hcd
+[54691.992411] usb 1-6.4: New USB device found, idVendor=0e6f, idProduct=02a2, bcdDevice= 1.0f
+[54691.992417] usb 1-6.4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[54691.992420] usb 1-6.4: Product: Testing Firmware Patches
+[54691.992423] usb 1-6.4: Manufacturer: Performance Designed Products
+[54691.992426] usb 1-6.4: SerialNumber: 0000AE38D7650465
+[54691.998102] input: Generic X-Box pad as /devices/pci0000:00/0000:00:14.0/usb1/1-6/1-6.4/1-6.4:1.0/input/input28
+</pre></table></code></div></div><p>Excellent - so we now have the firmware fully extracted and loaded into ghidra, as well as the ability to modify it as we see fit…now it’s time to write some macros. But it’s getting late and I almost missed the monthly post deadline for January so I think I’m going to wrap it up here!</p><h2 id="conclusion">Conclusion</h2><p>When performing an assessment of an embedded system, you typically want to enumerate and explore all possible interfaces and methods of interacting with the target. Whether your end goal is to hunt for bugs, modify the device’s normal operation or just learn more about how it works, hardware debugging is <em>extremely</em> useful. By utilizing hardware debugging we were able to extract the firmware from this target, set up a live debugger and also modify the firmware. Through this this exercise, we also covered how Single Wire Debug works, as well as how to identify, enumerate and debug an unknown CPU with hardware debugging tools. OpenOCD was also used with a FT2232H based interface to extract firmware images as well as reflash new firmware onto the target. Thanks for reading and if you have any questions or just want to talk more about this kind of stuff please feel free to ping me on <a href="https://twitter.com/wrongbaud">twitter</a></p></div><div class="post-tail-wrapper text-muted"><div class="post-meta mb-3"> <i class="far fa-folder-open fa-fw mr-1"></i> <a href='/categories/arcade/'>arcade</a></div><div class="post-tags"> <i class="fa fa-tags fa-fw mr-1"></i> <a href="/tags/hardware/" class="post-tag no-text-decoration" >hardware</a> <a href="/tags/swd/" class="post-tag no-text-decoration" >swd</a></div><div class="post-tail-bottom d-flex justify-content-between align-items-center mt-3 pt-5 pb-2"><div class="license-wrapper"> This post is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> by the author.</div><div class="share-wrapper"> <span class="share-label text-muted mr-1">Share</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers - Wrongbaud's Blog&url=https://wrongbaud.github.io/posts/stm-xbox-jtag/" data-toggle="tooltip" data-placement="top" title="Twitter" target="_blank" rel="noopener" aria-label="Twitter"> <i class="fa-fw fab fa-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers - Wrongbaud's Blog&u=https://wrongbaud.github.io/posts/stm-xbox-jtag/" data-toggle="tooltip" data-placement="top" title="Facebook" target="_blank" rel="noopener" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://telegram.me/share?text=Hardware Debugging for Reverse Engineers Part 1: SWD, OpenOCD and Xbox One Controllers - Wrongbaud's Blog&url=https://wrongbaud.github.io/posts/stm-xbox-jtag/" data-toggle="tooltip" data-placement="top" title="Telegram" target="_blank" rel="noopener" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <i class="fa-fw fas fa-link small" onclick="copyLink()" data-toggle="tooltip" data-placement="top" title="Copy link"></i> </span></div></div></div></div></div><div id="panel-wrapper" class="col-xl-3 pl-2 text-muted topbar-down"><div class="access"><div id="access-lastmod" class="post"> <span>Recent Update</span><ul class="post-content pl-0 pb-1 ml-1 mt-2"><li><a href="/posts/kong-vs-ghidra/">Godzilla Vs. Kong Vs ... Ghidra? - Ghidra Scripting, PCode Emulation, and Password Cracking</a><li><a href="/posts/ghidra-debugger/">A first look at Ghidra's Debugger - Game Boy Advance Edition</a><li><a href="/posts/Holiday-Teardown/">BasicFUN Series Part 4: I2C Sniffing, EEPROM Extraction and Parallel Flash Extraction</a><li><a href="/posts/BasicFUN-rom-analysis/">BasicFUN Series Part 2: Reverse Engineering Firmware / Reflashing SPI Flash</a><li><a href="/posts/MK-Teardown/">BasicFUN Series Part 3: Dumping Parallel Flash via I2C I/O Expanders</a></ul></div><div id="access-tags"> <span>Trending Tags</span><div class="d-flex flex-wrap mt-3 mb-1 mr-3"> <a class="post-tag" href="/tags/hardware/">hardware</a> <a class="post-tag" href="/tags/ghidra/">ghidra</a> <a class="post-tag" href="/tags/spi/">spi</a> <a class="post-tag" href="/tags/tools/">tools</a> <a class="post-tag" href="/tags/gba/">gba</a> <a class="post-tag" href="/tags/i2c/">i2c</a> <a class="post-tag" href="/tags/nand/">nand</a> <a class="post-tag" href="/tags/nes/">nes</a> <a class="post-tag" href="/tags/firmware/">firmware</a> <a class="post-tag" href="/tags/jtag/">jtag</a></div></div></div><div id="toc-wrapper" class="pl-0 pr-4 mb-5"> <span class="pl-3 pt-2 mb-2">Contents</span><nav id="toc" data-toggle="toc"></nav></div></div></div><div class="row"><div class="col-12 col-lg-11 col-xl-8"><div id="post-extend-wrapper" class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><div id="related-posts" class="mt-5 mb-2 mb-sm-4"><h3 class="pt-2 mt-1 mb-4 ml-1" data-toc-skip>Further Reading</h3><div class="card-deck mb-4"><div class="card"> <a href="/posts/router-teardown/"><div class="card-body"> <span class="timeago small" > Oct 7, 2019 <i class="unloaded">2019-10-07T08:06:31+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Router Analysis Part 1: UART Discovery and SPI Flash Extraction</h3><div class="text-muted small"><p> Router Analysis Part 1: Hardware Teardown Overview In previous posts, we’ve gone over how to tear down Arcade cabinets containing SPI Flash as well as how to dissect the data that was extracted f...</p></div></div></a></div><div class="card"> <a href="/posts/jtag-hdd/"><div class="card-body"> <span class="timeago small" > Apr 2, 2020 <i class="unloaded">2020-04-02T08:06:31+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Hardware Debugging for Reverse Engineers Part 2: JTAG, SSDs and Firmware Extraction</h3><div class="text-muted small"><p> Background To follow up on my last post about SWD and hardware debugging, I wanted to do a deep dive into JTAG from a reverse-engineering perspective. The previous post received a lot of great fee...</p></div></div></a></div><div class="card"> <a href="/posts/MK-Teardown/"><div class="card-body"> <span class="timeago small" > Nov 26, 2019 <i class="unloaded">2019-11-26T08:06:31+08:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>BasicFUN Series Part 3: Dumping Parallel Flash via I2C I/O Expanders</h3><div class="text-muted small"><p> BasicFUN MK Teardown Part 1: Flash Extraction Background I noticed not too long ago that a new BasicFUN cabinet came out featuring one of my favorite childhood games: Mortal Kombat. This of cours...</p></div></div></a></div></div></div><div class="post-navigation d-flex justify-content-between"> <a href="/posts/Holiday-Teardown/" class="btn btn-outline-primary"><p>BasicFUN Series Part 4: I2C Sniffing, EEPROM Extraction and Parallel Flash Extraction</p></a> <a href="/posts/writing-a-ghidra-loader/" class="btn btn-outline-primary"><p>Writing a GHIDRA Loader: STM32 Edition.</p></a></div></div></div></div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js"></script> <script type="text/javascript"> const imgs = document.querySelectorAll('#post-wrapper img'); const observer = lozad(imgs); observer.observe(); </script><footer class="d-flex w-100 justify-content-center"><div class="d-flex justify-content-between align-items-center"><div class="footer-left"><p class="mb-0"> © 2021 <a href="https://twitter.com/wrongbaud">wrongbaud</a>. <span data-toggle="tooltip" data-placement="top" title="Except where otherwise noted, the blog posts on this site are licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) License by the author.">Some rights reserved.</span></p></div><div class="footer-right"><p class="mb-0"> Powered by <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a> with <a href="https://github.com/cotes2020/jekyll-theme-chirpy/" target="_blank" rel="noopener">Chirpy</a> theme.</p></div></div></footer></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-12 col-xl-11 post-content"><div id="search-hints"><h4 class="text-muted mb-4">Trending Tags</h4><a class="post-tag" href="/tags/hardware/">hardware</a> <a class="post-tag" href="/tags/ghidra/">ghidra</a> <a class="post-tag" href="/tags/spi/">spi</a> <a class="post-tag" href="/tags/tools/">tools</a> <a class="post-tag" href="/tags/gba/">gba</a> <a class="post-tag" href="/tags/i2c/">i2c</a> <a class="post-tag" href="/tags/nand/">nand</a> <a class="post-tag" href="/tags/nes/">nes</a> <a class="post-tag" href="/tags/firmware/">firmware</a> <a class="post-tag" href="/tags/jtag/">jtag</a></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><div id="mask"></div><a id="back-to-top" href="#" aria-label="back-to-top" class="btn btn-lg btn-box-shadow" role="button"> <i class="fas fa-angle-up"></i> </a> <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@1.7.3/dest/simple-jekyll-search.min.js"></script> <script> SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<div class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-lg-4 pr-lg-4 pl-xl-0 pr-xl-0"> <a href="https://wrongbaud.github.io{url}">{title}</a><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"><div class="mr-sm-4"><i class="far fa-folder fa-fw"></i>{categories}</div><div><i class="fa fa-tag fa-fw"></i>{tags}</div></div><p>{snippet}</p></div>', noResultsText: '<p class="mt-5">Oops! No result founds.</p>' }); </script> <script async src="https://www.googletagmanager.com/gtag/js?id="></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', ''); </script>
